@@ -1,11 +1,10 @@
 module CairoMakie
 
-import Makie
-using Makie: Scene, Lines, Text, Image, Heatmap, Scatter, @key_str, broadcast_foreach
-using Makie: convert_attribute, @extractvalue, LineSegments, to_ndim, NativeFont
-using Makie: @info, @get_attribute
-using Colors, GeometryTypes
 using AbstractPlotting
+using AbstractPlotting: Scene, Lines, Text, Image, Heatmap, Scatter, @key_str, broadcast_foreach
+using AbstractPlotting: convert_attribute, @extractvalue, LineSegments, to_ndim, NativeFont
+using AbstractPlotting: @info, @get_attribute, Combined
+using Colors, GeometryTypes
 using AbstractPlotting: to_value, to_colormap, extrema_nan
 using Cairo
 
@@ -120,12 +119,13 @@ function draw_segment(scene, ctx, segment::Tuple{<: Point, <: Point}, model, con
     stroke()
 end
 
-function cairo_draw(screen::CairoScreen, primitive::Union{Lines, LineSegments})
+function draw_atomic(screen::CairoScreen, primitive::Union{Lines, LineSegments})
     scene = screen.scene
     fields = @get_attribute(primitive, (color, linewidth, linestyle))
     ctx = screen.context
     model = primitive[:model][]
     positions = primitive[1][]
+    isempty(positions) && return
     N = length(positions)
     connect = Ref(true); do_stroke = Ref(true)
     broadcast_foreach(1:N, positions, fields...) do i, point, c, linewidth, linestyle
@@ -148,11 +148,11 @@ function to_cairo_image(img, attributes)
     to_cairo_image(to_uint32_color.(img), attributes)
 end
 
-function cairo_draw(screen::CairoScreen, primitive::Image)
+function draw_atomic(screen::CairoScreen, primitive::Image)
     draw_image(screen, primitive)
 end
 
-function cairo_draw(screen::CairoScreen, primitive::Union{Heatmap, Image})
+function draw_atomic(screen::CairoScreen, primitive::Union{Heatmap, Image})
     draw_image(screen, primitive)
 end
 
@@ -179,11 +179,13 @@ function draw_image(screen, attributes)
 end
 
 
-function cairo_draw(screen::CairoScreen, primitive::Scatter)
+function draw_atomic(screen::CairoScreen, primitive::Scatter)
     scene = screen.scene
     fields = @get_attribute(primitive, (color, markersize, strokecolor, strokewidth, marker))
     ctx = screen.context
     model = primitive[:model][]
+    positions = primitive[1][]
+    isempty(positions) && return
     broadcast_foreach(primitive[1][], fields...) do point, c, markersize, strokecolor, strokewidth, marker
         # TODO: Implement marker
         # TODO: Accept :radius field or similar?
@@ -206,9 +208,7 @@ end
 
 
 
-function cairo_draw(screen::CairoScreen, primitive::Makie.Combined)
-    foreach(x-> cairo_draw(screen, x), primitive.plots)
-end
+
 
 scale_matrix(x, y) = Cairo.CairoMatrix(x, 0.0, 0.0, y, 0.0, 0.0)
 function rot_scale_matrix(x, y, q)
@@ -248,7 +248,7 @@ function fontscale(scene, c, font, s)
     project_scale(scene, s)
 end
 
-function cairo_draw(screen::CairoScreen, primitive::Text)
+function draw_atomic(screen::CairoScreen, primitive::Text)
     scene = screen.scene
     ctx = screen.context
     @get_attribute(primitive, (textsize, color, font, align, rotation, model))
@@ -305,6 +305,13 @@ cairo_finish(screen::CairoScreen) = finish(screen.surface)
 
 
 
+function cairo_draw(screen::CairoScreen, primitive::Combined)
+    isempty(primitive.plots) && return draw_atomic(screen, primitive)
+    for plot in primitive.plots
+        cairo_draw(screen, plot)
+    end
+end
+
 function cairo_draw(screen::CairoScreen, scene::Scene)
     for elem in scene.plots
         cairo_draw(screen, elem)
@@ -339,7 +346,8 @@ end
 
 function __init__()
     dir = mktempdir()
-    AbstractPlotting.register_backend!(CairoBackend(joinpath(dir, "cairo.svg")))
+    temp_file = joinpath(dir, "cairo.svg")
+    AbstractPlotting.register_backend!(CairoBackend(temp_file))
     atexit() do
         rm(dir, force = true, recursive = true)
     end
