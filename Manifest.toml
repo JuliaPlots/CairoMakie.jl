@@ -68,9 +68,9 @@ version = "0.1.0"
 
 [[Atom]]
 deps = ["ASTInterpreter2", "Base64", "CodeTools", "DocSeeker", "HTTP", "Hiccup", "JSON", "Juno", "LNR", "Lazy", "Logging", "MacroTools", "Markdown", "Media", "Profile", "REPL", "Reexport", "Requires", "Sockets", "Test", "Traceur", "TreeViews", "WebIO", "WebSockets"]
-path = "/home/sd/.julia/dev/Atom"
+git-tree-sha1 = "07431ce3d1cb62c5ba7135e196702a0a60618a9d"
 uuid = "c52e3926-4ff0-5f6e-af25-54175e0327b1"
-version = "0.7.10+"
+version = "0.7.10"
 
 [[AxisAlgorithms]]
 deps = ["Compat", "WoodburyMatrices"]
@@ -232,11 +232,6 @@ git-tree-sha1 = "a427098d5aa2808504d94b8ed9fc5740ceaf71d0"
 uuid = "159f3aea-2a34-519c-b102-8c37f9878175"
 version = "0.5.6"
 
-[[CairoMakie]]
-deps = ["AbstractPlotting", "Cairo", "Colors", "FileIO", "GeometryTypes", "Makie", "StaticArrays"]
-path = "/home/sd/.julia/dev/CairoMakie"
-uuid = "f1797859-2bec-5491-832b-e19d79114491"
-version = "0.0.0"
 
 [[Calculus]]
 deps = ["Compat"]
@@ -745,6 +740,12 @@ git-tree-sha1 = "271ef13438bd0946950fd34d9241e5beefd6d4b3"
 uuid = "663a7486-cb36-511b-a19d-713bb74d65c9"
 version = "0.4.1"
 
+[[FreqTables]]
+deps = ["CategoricalArrays", "NamedArrays", "Tables", "Test"]
+git-tree-sha1 = "93ce75cae27c2d1c6518771d597b6dd0a3d623d3"
+uuid = "da1fdf0e-e0ff-5433-a45f-9bb5ff651cb1"
+version = "0.3.1"
+
 [[FunctionWrappers]]
 deps = ["Compat"]
 git-tree-sha1 = "49bf793ebd37db5adaa7ac1eae96c2c97ec86db5"
@@ -769,15 +770,10 @@ version = "0.2.0"
 
 [[GLFW]]
 deps = ["BinDeps", "CMakeWrapper", "Homebrew", "Libdl", "Test"]
-path = "/home/sd/.julia/dev/GLFW"
+git-tree-sha1 = "035e2b5e9c335afae1e92ecfe532cf0620da869f"
 uuid = "f7f18e0c-5ee9-5ccd-a5bf-e8befd85ed98"
-version = "2.3.0+"
+version = "2.3.0"
 
-[[GLMakie]]
-deps = ["AbstractPlotting", "AxisArrays", "ColorBrewer", "ColorTypes", "ColorVectorSpace", "Colors", "Contour", "FileIO", "FixedPointNumbers", "FreeType", "FreeTypeAbstraction", "GLFW", "GeometryTypes", "ImageAxes", "ImageCore", "ImageMagick", "ImageTransformations", "IndirectArrays", "IntervalSets", "IterTools", "LinearAlgebra", "MakieGallery", "Markdown", "ModernGL", "Observables", "Pkg", "PlotUtils", "Primes", "Printf", "QuartzImageIO", "Serialization", "Showoff", "StaticArrays", "Suppressor", "UnicodeFun"]
-path = "/home/sd/.julia/dev/GLMakie"
-uuid = "e9467ef8-e4e7-5192-8a1a-b1aee30e663a"
-version = "0.0.1+"
 
 [[GPUArrays]]
 deps = ["FFTW", "FillArrays", "LinearAlgebra", "Pkg", "Printf", "Random", "Serialization", "StaticArrays", "Test"]
@@ -793,12 +789,6 @@ repo-url = "https://github.com/jheinen/GR.jl.git"
 uuid = "28b8d3ca-fb5f-59d9-8090-bfdbd6d07a71"
 version = "0.36.0+"
 
-[[GRMakie]]
-deps = ["AbstractPlotting", "GR", "Makie", "Test"]
-path = "/home/sd/.julia/dev/GRMakie"
-uuid = "309647c7-e218-54c2-8e67-2da2c2d8704e"
-version = "0.0.0"
-
 [[GenericSVD]]
 deps = ["LinearAlgebra", "Random", "Test"]
 git-tree-sha1 = "c6f411fee94d3e2f1121d635f5a7ab7eec200eea"
@@ -813,9 +803,9 @@ version = "0.2.0"
 
 [[GeometryTypes]]
 deps = ["ColorTypes", "FixedPointNumbers", "IterTools", "LinearAlgebra", "StaticArrays", "Test"]
-path = "/home/sd/.julia/dev/GeometryTypes"
+git-tree-sha1 = "706fc16aa2a648a2f292732f8e6ee25167484328"
 uuid = "4d00f742-c7ba-57c2-abde-4428a4b178cb"
-version = "0.7.1+"
+version = "0.7.1"
 
 [[GitHub]]
 deps = ["Base64", "Compat", "Dates", "HTTP", "JSON", "MbedTLS", "Test"]
@@ -985,9 +975,9 @@ uuid = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
 
 [[Interpolations]]
 deps = ["AxisAlgorithms", "LinearAlgebra", "OffsetArrays", "Random", "Ratios", "SharedArrays", "SparseArrays", "StaticArrays", "Test", "WoodburyMatrices"]
-path = "/home/sd/.julia/dev/Interpolations"
+git-tree-sha1 = "3493536a64dae5a21c0cc8aecf680647f3e12313"
 uuid = "a98d9a8b-a2ab-59e6-89dd-64a1c18fca59"
-version = "0.11.0+"
+version = "0.11.0"
 
 [[IntervalArithmetic]]
 deps = ["CRlibm", "FastRounding", "LinearAlgebra", "Markdown", "RecipesBase", "SetRounding", "StaticArrays", "Test"]
@@ -1133,6 +1123,12 @@ git-tree-sha1 = "580bb0efbfe0082c4fb0ce8dbf6548872c3b604c"
 uuid = "7a12625a-238d-50fd-b39a-03d52299707e"
 version = "2.2.2"
 
+[[Loess]]
+deps = ["Distances", "Random", "Statistics", "Test"]
+git-tree-sha1 = "0ee46caf683a422b595be4dfaed6cda28f541e25"
+uuid = "4345ca2d-374a-55d4-8d30-97f9976e7612"
+version = "0.5.0"
+
 [[Logging]]
 uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
 
@@ -1170,7 +1166,9 @@ version = "0.9.0+"
 
 [[MakieGallery]]
 deps = ["AbstractPlotting", "BinaryProvider", "ColorTypes", "ColorVectorSpace", "Colors", "DataFrames", "Documenter", "FileIO", "FixedPointNumbers", "GDAL", "GeometryTypes", "ImageCore", "ImageFiltering", "ImageMagick", "ImageTransformations", "LinearAlgebra", "Makie", "Markdown", "MeshIO", "ModernGL", "Pkg", "QuartzImageIO", "RDatasets", "Random", "Statistics", "Test"]
-path = "/home/sd/.julia/dev/MakieGallery"
+git-tree-sha1 = "178252e975f92c3e11a4478577ec4a4faff4119d"
+repo-rev = "master"
+repo-url = "https://github.com/JuliaPlots/MakieGallery.jl"
 uuid = "62e31da0-2f4f-5d53-819c-a7cea9df6aaa"
 version = "0.0.0"
 
@@ -1305,6 +1303,12 @@ git-tree-sha1 = "ce3b85e484a5d4c71dd5316215069311135fa9f2"
 uuid = "77ba4419-2d1f-58cd-9bb1-8ffee604a2e3"
 version = "0.3.2"
 
+[[NamedArrays]]
+deps = ["Combinatorics", "DataStructures", "DelimitedFiles", "LinearAlgebra", "Random", "Requires", "SparseArrays", "Statistics", "Test"]
+git-tree-sha1 = "3099281fe5bcccb0cc329655a2b07e0d85e978ca"
+uuid = "86f7a689-2022-50b4-a561-43c23ac3c673"
+version = "0.9.1"
+
 [[NearestNeighbors]]
 deps = ["Distances", "LinearAlgebra", "Mmap", "StaticArrays", "Test"]
 git-tree-sha1 = "aab46b96ae5c2a9c08146188016d6312276094e5"
@@ -1333,9 +1337,9 @@ version = "0.3.1"
 
 [[Observables]]
 deps = ["Test"]
-path = "/home/sd/.julia/dev/Observables"
+git-tree-sha1 = "dc02cec22747d1d10d9f70d8a1c03432b5bfbcd0"
 uuid = "510215fc-4207-5dde-b226-833fc4488ee2"
-version = "0.2.3+"
+version = "0.2.3"
 
 [[OffsetArrays]]
 deps = ["DelimitedFiles", "Test"]
@@ -1356,10 +1360,9 @@ uuid = "925886fa-5bf2-5e8e-b522-a9147a512338"
 version = "0.9.1"
 
 [[OpenCL]]
-deps = ["Libdl", "LinearAlgebra", "Printf"]
-path = "/home/sd/.julia/dev/OpenCL"
+git-tree-sha1 = "e664123afca13a0caf2f08f2b91714f724732293"
 uuid = "08131aa3-fb12-5dee-8b74-c09406e224a2"
-version = "0.7.0+"
+version = "0.7.0"
 
 [[Optim]]
 deps = ["Calculus", "DiffEqDiffTools", "ForwardDiff", "LineSearches", "LinearAlgebra", "NLSolversBase", "NaNMath", "Parameters", "PositiveFactorizations", "Printf", "Random", "SparseArrays", "StatsBase", "Test"]
@@ -1391,11 +1394,6 @@ git-tree-sha1 = "9e3e7a5c9b8cfdba8c01a1bcae38fe0144936fda"
 uuid = "90014a1f-27ba-587c-ab20-58faa44d9150"
 version = "0.9.5"
 
-[[PackageCompiler]]
-deps = ["ArgParse", "Libdl", "Pkg", "Serialization", "SnoopCompile", "Test", "WinRPM"]
-path = "/home/sd/.julia/dev/PackageCompiler"
-uuid = "9b87118b-4619-50d2-8e1e-99f35a4d4d9d"
-version = "0.5.1+"
 
 [[Packing]]
 deps = ["GeometryTypes", "Test"]
@@ -1803,8 +1801,10 @@ uuid = "4c63d2b9-4356-54db-8cca-17b64c39e42c"
 version = "0.7.0"
 
 [[StatsMakie]]
-deps = ["AbstractPlotting", "Distributions", "IndexedTables", "IntervalSets", "KernelDensity", "Observables", "Random", "Statistics", "StatsBase", "Tables", "Test"]
-path = "/home/sd/.julia/dev/StatsMakie"
+deps = ["AbstractPlotting", "Distributions", "FreqTables", "IndexedTables", "IntervalSets", "KernelDensity", "Loess", "NamedArrays", "Observables", "Random", "Statistics", "StatsBase", "Tables", "Test"]
+git-tree-sha1 = "7745ba65ac5a3d17514a605dd87ec6fb54c708e9"
+repo-rev = "master"
+repo-url = "https://github.com/JuliaPlots/StatsMakie.jl.git"
 uuid = "9d48ccf0-4268-5716-84ff-21228f561db3"
 version = "0.0.0"
 
@@ -2021,11 +2021,6 @@ git-tree-sha1 = "1087e8be380f2c8b96434b02bb1150fc1c511135"
 uuid = "ea10d353-3f73-51f8-a26c-33c1cb351aa5"
 version = "0.5.3"
 
-[[WebIO]]
-deps = ["AssetRegistry", "Base64", "Compat", "FunctionalCollections", "JSON", "Logging", "Observables", "Random", "Requires", "Sockets", "Test", "UUIDs", "Widgets"]
-path = "/home/sd/.julia/dev/WebIO"
-uuid = "0f1e0344-ec1d-5b48-a673-e5cf874b6c29"
-version = "0.6.1+"
 
 [[WebSockets]]
 deps = ["Base64", "Dates", "Distributed", "HTTP", "Logging", "MbedTLS", "Random", "Sockets", "Test"]
@@ -2033,11 +2028,6 @@ git-tree-sha1 = "c898a35f93bb010d8e44932c1a736e22c6343f9c"
 uuid = "104b5d7c-a370-577a-8038-80a2059c5097"
 version = "1.1.0"
 
-[[WebVisualize]]
-deps = ["JSExpr", "WebIO"]
-path = "/home/sd/.julia/dev/WebVisualize"
-uuid = "cc787f99-0094-596c-90da-9a0362a24f4c"
-version = "0.0.0"
 
 [[Widgets]]
 deps = ["DataStructures", "Observables", "Test"]
