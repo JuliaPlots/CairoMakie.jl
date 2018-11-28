@@ -6,7 +6,7 @@ using AbstractPlotting: convert_attribute, @extractvalue, LineSegments, to_ndim,
 using AbstractPlotting: @info, @get_attribute, Combined
 using Colors, GeometryTypes
 using AbstractPlotting: to_value, to_colormap, extrema_nan
-using Cairo
+using Cairo, FileIO
 
 @enum RenderType SVG PNG
 
@@ -44,7 +44,7 @@ Base.insert!(screen::CairoScreen, scene::Scene, plot) = nothing
 
 # Default to Gtk Window+Canvas as backing device
 function CairoScreen(scene::Scene)
-    w, h = round.(Int, scene.camera.resolution[])
+    w, h = size(scene)
     surf = CairoRGBSurface(w, h)
     ctx = CairoContext(surf)
     CairoScreen(scene, surf, ctx, nothing)
@@ -112,23 +112,16 @@ function draw_segment(scene, ctx, point::Point, model, c, linewidth, linestyle, 
     end
 end
 
-function draw_segment(scene, ctx, segment::Tuple{<: Point, <: Point}, model, connect, do_stroke, c, linewidth, linestyle, primitive)
-    a, b = project_position.((scene,), segment, (model,))
-    function stroke()
-        Cairo.set_line_width(ctx, Float64(linewidth))
-        Cairo.set_source_rgba(ctx, red(c), green(c), blue(c), alpha(c))
-        if linestyle != nothing
-            #set_dash(ctx, linestyle, 0.0)
-        end
-        Cairo.stroke(ctx)
-    end
-    Cairo.move_to(ctx, a...)
-    Cairo.line_to(ctx, b...)
-    stroke()
+function draw_segment(scene, ctx, point::Tuple{<: Point, <: Point}, model, c, linewidth, linestyle, primitive, idx, N)
+    draw_segment(scene, ctx, point[1], model, c, linewidth, linestyle, primitive, 1 + (idx - 1) * 2, N)
+    draw_segment(scene, ctx, point[2], model, c, linewidth, linestyle, primitive, (idx - 1) * 2, N)
 end
 
-function draw_atomic(screen::CairoScreen, primitive::Union{Lines, LineSegments})
-    scene = screen.scene
+function draw_atomic(::Scene, ::CairoScreen, x)
+    @warn "$(typeof(x)) is not supported by cairo right now"
+end
+
+function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Union{Lines, LineSegments})
     fields = @get_attribute(primitive, (color, linewidth, linestyle))
     ctx = screen.context
     model = primitive[:model][]
@@ -148,23 +141,22 @@ function to_cairo_image(img::AbstractMatrix{<: AbstractFloat}, attributes)
 end
 
 function to_cairo_image(img::Matrix{UInt32}, attributes)
-    CairoARGBSurface(img)
+    CairoARGBSurface([img[j, i] for i in size(img, 2):-1:1, j in 1:size(img, 1)])
 end
 to_uint32_color(c) = reinterpret(UInt32, convert(ARGB32, c))
 function to_cairo_image(img, attributes)
     to_cairo_image(to_uint32_color.(img), attributes)
 end
 
-function draw_atomic(screen::CairoScreen, primitive::Image)
-    draw_image(screen, primitive)
+function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Image)
+    draw_image(scene, screen, primitive)
 end
 
-function draw_atomic(screen::CairoScreen, primitive::Union{Heatmap, Image})
-    draw_image(screen, primitive)
+function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Union{Heatmap, Image})
+    draw_image(scene, screen, primitive)
 end
 
-function draw_image(screen, attributes)
-    scene = screen.scene
+function draw_image(scene, screen, attributes)
     ctx = screen.context
     image = attributes[3][]
     x, y = attributes[1][], attributes[2][]
@@ -184,11 +176,23 @@ function draw_image(screen, attributes)
     Cairo.fill(ctx)
     Cairo.restore(ctx)
 end
+_extract_color(cmap, range, c::RGBf0) = RGBAf0(c, 1.0)
+_extract_color(cmap, range, c::RGBAf0) = c
+function _extract_color(cmap, range, c::Number)
+    AbstractPlotting.interpolated_getindex(cmap, c, range)
+end
+function extract_color(cmap, range, c)
+    c = _extract_color(cmap, range, c)
+    red(c), green(c), blue(c), alpha(c)
+end
 
 
-function draw_atomic(screen::CairoScreen, primitive::Scatter)
-    scene = screen.scene
+
+function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Scatter)
     fields = @get_attribute(primitive, (color, markersize, strokecolor, strokewidth, marker))
+    cmap = get(primitive, :colormap, nothing) |> to_value |> to_colormap
+    crange = get(primitive, :colorrange, nothing) |> to_value
+
     ctx = screen.context
     model = primitive[:model][]
     positions = primitive[1][]
@@ -198,7 +202,8 @@ function draw_atomic(screen::CairoScreen, primitive::Scatter)
         # TODO: Accept :radius field or similar?
         scale = project_scale(scene, markersize)
         pos = project_position(scene, point, model)
-        Cairo.set_source_rgba(ctx, red(c), green(c), blue(c), alpha(c))
+
+        Cairo.set_source_rgba(ctx, extract_color(cmap, crange, c)...)
         Cairo.arc(ctx, pos[1], pos[2], scale[1] / 2, 0, 2*pi)
         Cairo.fill(ctx)
         sc = to_color(strokecolor)
@@ -255,8 +260,7 @@ function fontscale(scene, c, font, s)
     project_scale(scene, s)
 end
 
-function draw_atomic(screen::CairoScreen, primitive::Text)
-    scene = screen.scene
+function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Text)
     ctx = screen.context
     @get_attribute(primitive, (textsize, color, font, align, rotation, model))
     txt = to_value(primitive[1])
@@ -299,32 +303,54 @@ function cairo_clear(screen::CairoScreen)
     Cairo.fill(ctx)
 end
 
-function cairo_finish(screen::CairoScreen{CairoRGBSurface})
-    showall(screen.pane.window)
-    draw(screen.pane.canvas) do canvas
-        ctx = getgc(canvas)
-        w, h = Cairo.width(ctx), Cairo.height(ctx)
-        # TODO: Maybe just use set_source(ctx, screen.surface)?
-        Cairo.image(ctx, screen.surface, 0, 0, w, h)
-    end
+function cairo_finish(screen::CairoScreen{Cairo.CairoSurfaceBase{UInt32}})
 end
-cairo_finish(screen::CairoScreen) = finish(screen.surface)
+
+function cairo_finish(screen::CairoScreen)
+    finish(screen.surface)
+end
 
 
 
-function cairo_draw(screen::CairoScreen, primitive::Combined)
-    isempty(primitive.plots) && return draw_atomic(screen, primitive)
+
+
+function draw_background(screen::CairoScreen, scene::Scene)
+    cr = screen.context
+    Cairo.save(cr)
+    if theme(scene, :clear)[]
+        bg = to_color(theme(scene, :backgroundcolor)[])
+        Cairo.set_source_rgba(cr, red(bg), green(bg), blue(bg), alpha(bg));    # light gray
+        r = pixelarea(scene)[]
+        Cairo.rectangle(cr, minimum(r)..., widths(r)...) # background
+        fill(cr)
+    end
+    Cairo.restore(cr)
+    foreach(child_scene-> draw_background(screen, child_scene), scene.children)
+end
+
+function draw_plot(scene::Scene, screen::CairoScreen, primitive::Combined)
+    isempty(primitive.plots) && return draw_atomic(scene, screen, primitive)
     for plot in primitive.plots
-        cairo_draw(screen, plot)
+        draw_plot(scene, screen, plot)
     end
 end
 
-function cairo_draw(screen::CairoScreen, scene::Scene)
+function draw_plot(screen::CairoScreen, scene::Scene)
+    Cairo.save(screen.context)
+    Cairo.translate(screen.context, minimum(pixelarea(scene)[])...)
     for elem in scene.plots
-        cairo_draw(screen, elem)
+        draw_plot(scene, screen, elem)
     end
-    foreach(child_scene-> cairo_draw(screen, child_scene), scene.children)
-    cairo_finish(screen)
+    Cairo.restore(screen.context)
+    for child in scene.children
+        draw_plot(screen, child)
+    end
+    return
+end
+function cairo_draw(screen::CairoScreen, scene::Scene)
+    AbstractPlotting.update!(scene)
+    draw_background(screen, scene)
+    draw_plot(screen, scene)
     return
 end
 
@@ -332,23 +358,32 @@ function AbstractPlotting.backend_display(x::CairoBackend, scene::Scene)
     open(x.path, "w") do io
         AbstractPlotting.backend_show(x, io, to_mime(x), scene)
     end
+    (x, scene)
 end
 
+function AbstractPlotting.colorbuffer(tup::Tuple{<: CairoBackend, Scene})
+    screen, scene = tup
+    # TODO this is super slow, we need to design the colorbuffer
+    # api to be able to reuse a RGB surface
+    AbstractPlotting.backend_display(screen, scene)
+    FileIO.load(screen.path)
+end
 AbstractPlotting.backend_showable(x::CairoBackend, m::MIME"image/svg+xml", scene::SceneLike) = x.typ == SVG
 AbstractPlotting.backend_showable(x::CairoBackend, m::MIME"image/png", scene::SceneLike) = x.typ == PNG
 
 
-function AbstractPlotting.backend_show(::CairoBackend, io::IO, ::MIME"image/svg+xml", scene::Scene)
-    AbstractPlotting.update!(scene)
+function AbstractPlotting.backend_show(x::CairoBackend, io::IO, ::MIME"image/svg+xml", scene::Scene)
     screen = CairoScreen(scene, io)
     cairo_draw(screen, scene)
+    cairo_finish(screen)
+    (x, scene)
 end
 
-function AbstractPlotting.backend_show(::CairoBackend, io::IO, ::MIME"image/png", scene::Scene)
-    AbstractPlotting.update!(scene)
+function AbstractPlotting.backend_show(x::CairoBackend, io::IO, m::MIME"image/png", scene::Scene)
     screen = CairoScreen(scene, io)
     cairo_draw(screen, scene)
     write_to_png(screen.surface, io)
+    (x, scene)
 end
 
 function __init__()
