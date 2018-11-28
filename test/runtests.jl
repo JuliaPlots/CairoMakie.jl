@@ -6,8 +6,9 @@ database = MakieGallery.load_database()
 filter!(database) do entry
     "2d" in entry.tags &&
     "Text rotation" != entry.title &&
+    "fem polygon 2d" != lowercase(entry.title) &&
     "Hbox" != entry.title &&
-    !("heatmap" in entry.tags) &&
+    !("heatmap" in entry.tags) && # why though, they worked -.-
     !("mesh" in entry.tags) &&
     !("barplot" in entry.tags) &&
     !("polygon" in entry.tags) &&
@@ -26,3 +27,11 @@ mkpath(test_record_path)
 MakieGallery.record_examples(test_record_path)
 MakieGallery.run_comparison(test_record_path, ref_path, tested_diff_path)
 rm(tmp, force = true)
+# using Pkg`
+
+# cd(@__DIR__)
+# mani = TOML.parsefile("../Manifest.toml")
+# deps = mani["CairoMakie"][1]["deps"]
+# for dep in deps
+#     println(dep, " = ", repr(mani[dep][]["uuid"]))
+# end
