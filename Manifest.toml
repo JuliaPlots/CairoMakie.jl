@@ -247,6 +247,12 @@ git-tree-sha1 = "035e2b5e9c335afae1e92ecfe532cf0620da869f"
 uuid = "f7f18e0c-5ee9-5ccd-a5bf-e8befd85ed98"
 version = "2.3.0"
 
+[[GLMakie]]
+deps = ["AbstractPlotting", "AxisArrays", "ColorBrewer", "ColorTypes", "ColorVectorSpace", "Colors", "Contour", "FileIO", "FixedPointNumbers", "FreeType", "FreeTypeAbstraction", "GLFW", "GeometryTypes", "ImageAxes", "ImageCore", "ImageMagick", "ImageTransformations", "IndirectArrays", "IntervalSets", "IterTools", "LinearAlgebra", "Makie", "Markdown", "ModernGL", "Observables", "Pkg", "PlotUtils", "Primes", "Printf", "QuartzImageIO", "Serialization", "Showoff", "StaticArrays", "UnicodeFun"]
+git-tree-sha1 = "2e3cb969fd8f8cab98a4863d4a97d24bb1efdbd0"
+uuid = "e9467ef8-e4e7-5192-8a1a-b1aee30e663a"
+version = "0.0.1"
+
 [[GeometryTypes]]
 deps = ["ColorTypes", "FixedPointNumbers", "IterTools", "LinearAlgebra", "StaticArrays", "Test"]
 git-tree-sha1 = "706fc16aa2a648a2f292732f8e6ee25167484328"
@@ -385,10 +391,12 @@ uuid = "1914dd2f-81c6-5fcd-8719-6d5c9610ff09"
 version = "0.4.4"
 
 [[Makie]]
-deps = ["AbstractPlotting", "AxisArrays", "Base64", "ColorBrewer", "ColorTypes", "ColorVectorSpace", "Colors", "Contour", "Dates", "Distributed", "FileIO", "FixedPointNumbers", "FreeType", "FreeTypeAbstraction", "GLFW", "GeometryTypes", "ImageAxes", "ImageCore", "ImageMagick", "ImageTransformations", "IndirectArrays", "IntervalSets", "IterTools", "LinearAlgebra", "Markdown", "ModernGL", "Pkg", "PlotUtils", "Primes", "Printf", "QuartzImageIO", "Random", "Reactive", "Serialization", "Showoff", "StaticArrays", "Statistics", "Test", "UnicodeFun"]
-git-tree-sha1 = "7d01e74cd3b6a04a7f25a2646c0dc8e5f0924692"
+deps = ["AbstractPlotting", "AxisArrays", "Base64", "ColorBrewer", "ColorTypes", "ColorVectorSpace", "Colors", "Contour", "FileIO", "FixedPointNumbers", "FreeType", "FreeTypeAbstraction", "GLFW", "GLMakie", "GeometryTypes", "ImageAxes", "ImageCore", "ImageMagick", "ImageTransformations", "IndirectArrays", "IntervalSets", "IterTools", "LinearAlgebra", "ModernGL", "Observables", "Pkg", "PlotUtils", "Primes", "QuartzImageIO", "Showoff", "StaticArrays", "Statistics", "UnicodeFun"]
+git-tree-sha1 = "a49ae5834b605a14447e04d57a07cbb80ebe8add"
+repo-rev = "master"
+repo-url = "https://github.com/JuliaPlots/Makie.jl.git"
 uuid = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
-version = "0.9.0"
+version = "0.9.0+"
 
 [[MakieGallery]]
 deps = ["AbstractPlotting", "BinaryProvider", "ColorTypes", "ColorVectorSpace", "Colors", "DataFrames", "Documenter", "FileIO", "FixedPointNumbers", "GDAL", "GeometryTypes", "ImageCore", "ImageFiltering", "ImageMagick", "ImageTransformations", "LinearAlgebra", "Makie", "Markdown", "MeshIO", "ModernGL", "Pkg", "QuartzImageIO", "RDatasets", "Random", "Statistics", "Test"]
@@ -550,12 +558,6 @@ deps = ["Compat"]
 git-tree-sha1 = "fd159bead0a24e6270fd0573a340312bd4645cc2"
 uuid = "c84ed2f1-dad5-54f0-aa8e-dbefe2724439"
 version = "0.3.0"
-
-[[Reactive]]
-deps = ["DataStructures", "Distributed", "Test"]
-git-tree-sha1 = "2384e3bda9dcd16750ff605fdf817e18cfdd9bae"
-uuid = "a223df75-4e93-5b7c-acf9-bdd599c0f4de"
-version = "0.8.2"
 
 [[Reexport]]
 deps = ["Pkg"]
