@@ -67,14 +67,6 @@ git-tree-sha1 = "a427098d5aa2808504d94b8ed9fc5740ceaf71d0"
 uuid = "159f3aea-2a34-519c-b102-8c37f9878175"
 version = "0.5.6"
 
-[[CairoMakie]]
-deps = ["AbstractPlotting", "Cairo", "Colors", "GeometryTypes", "Makie", "StaticArrays"]
-git-tree-sha1 = "5d3e8ec512713ccda544c59cb5c41d1184c0f7b5"
-repo-rev = "master"
-repo-url = "https://github.com/JuliaPlots/CairoMakie.jl.git"
-uuid = "f1797859-2bec-5491-832b-e19d79114491"
-version = "0.0.0"
-
 [[CatIndices]]
 deps = ["CustomUnitRanges", "OffsetArrays", "Test"]
 git-tree-sha1 = "254cf73ea369d2e39bfd6c5eb27a2296cfaed68c"
@@ -253,14 +245,6 @@ git-tree-sha1 = "035e2b5e9c335afae1e92ecfe532cf0620da869f"
 uuid = "f7f18e0c-5ee9-5ccd-a5bf-e8befd85ed98"
 version = "2.3.0"
 
-[[GLMakie]]
-deps = ["AbstractPlotting", "AxisArrays", "ColorBrewer", "ColorTypes", "ColorVectorSpace", "Colors", "Contour", "FileIO", "FixedPointNumbers", "FreeType", "FreeTypeAbstraction", "GLFW", "GeometryTypes", "ImageAxes", "ImageCore", "ImageMagick", "ImageTransformations", "IndirectArrays", "IntervalSets", "IterTools", "LinearAlgebra", "MakieGallery", "Markdown", "ModernGL", "Observables", "Pkg", "PlotUtils", "Primes", "Printf", "QuartzImageIO", "Serialization", "Showoff", "StaticArrays", "Suppressor", "UnicodeFun"]
-git-tree-sha1 = "498d8beb4aa8312464ebdcc44f50cc525f40d037"
-repo-rev = "sd-tests"
-repo-url = "https://github.com/JuliaPlots/GLMakie.jl.git"
-uuid = "e9467ef8-e4e7-5192-8a1a-b1aee30e663a"
-version = "0.0.1+"
-
 [[GeometryTypes]]
 deps = ["ColorTypes", "FixedPointNumbers", "IterTools", "LinearAlgebra", "StaticArrays", "Test"]
 git-tree-sha1 = "706fc16aa2a648a2f292732f8e6ee25167484328"
@@ -408,7 +392,7 @@ version = "0.9.0"
 deps = ["AbstractPlotting", "BinaryProvider", "ColorTypes", "ColorVectorSpace", "Colors", "DataFrames", "Documenter", "FileIO", "FixedPointNumbers", "GDAL", "GeometryTypes", "ImageCore", "ImageFiltering", "ImageMagick", "ImageTransformations", "LinearAlgebra", "Makie", "Markdown", "MeshIO", "ModernGL", "Pkg", "QuartzImageIO", "RDatasets", "Random", "Statistics", "Test"]
 git-tree-sha1 = "178252e975f92c3e11a4478577ec4a4faff4119d"
 repo-rev = "master"
-repo-url = "https://github.com/JuliaPlots/MakieGallery.jl.git"
+repo-url = "https://github.com/JuliaPlots/MakieGallery.jl"
 uuid = "62e31da0-2f4f-5d53-819c-a7cea9df6aaa"
 version = "0.0.0"
 
@@ -460,12 +444,6 @@ deps = ["Compat"]
 git-tree-sha1 = "ae1a63457e14554df2159b0b028f48536125092d"
 uuid = "4d1e1d77-625e-5b40-9113-a560ec7a8ecd"
 version = "0.0.8"
-
-[[Observables]]
-deps = ["Test"]
-git-tree-sha1 = "dc02cec22747d1d10d9f70d8a1c03432b5bfbcd0"
-uuid = "510215fc-4207-5dde-b226-833fc4488ee2"
-version = "0.2.3"
 
 [[OffsetArrays]]
 deps = ["DelimitedFiles", "Test"]
@@ -651,12 +629,6 @@ deps = ["DataStructures", "LinearAlgebra", "Missings", "Printf", "Random", "Sort
 git-tree-sha1 = "2722397d88f8ffef551948f6c20e1d74a743298c"
 uuid = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 version = "0.26.0"
-
-[[Suppressor]]
-deps = ["Compat"]
-git-tree-sha1 = "a39342763981e766a72938b59032dc02a2d74da5"
-uuid = "fd094767-a336-5f1f-9728-57cf17d0bbfb"
-version = "0.1.1"
 
 [[TableTraits]]
 deps = ["IteratorInterfaceExtensions", "Test"]
