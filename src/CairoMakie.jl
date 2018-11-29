@@ -128,7 +128,7 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Union{Lines, 
     positions = primitive[1][]
     isempty(positions) && return
     N = length(positions)
-    broadcast_foreach(1:N, positions, fields...) do i, point, c, linewidth, linestyle
+    broadcast_foreach(1:N, positions, color, linewidth) do i, point, c, linewidth
         draw_segment(scene, ctx, point, model, c, linewidth, linestyle, primitive, i, N)
     end
     nothing
