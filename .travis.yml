@@ -6,6 +6,10 @@ os:
 julia:
   - 1.0
   - nightly
+addons:
+  apt:
+    packages:
+    - ffmpeg
 notifications:
   email: false
 git:
