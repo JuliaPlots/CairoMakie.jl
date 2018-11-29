@@ -7,6 +7,7 @@ using AbstractPlotting: @info, @get_attribute, Combined
 using Colors, GeometryTypes
 using AbstractPlotting: to_value, to_colormap, extrema_nan
 using Cairo, FileIO
+using LinearAlgebra
 
 @enum RenderType SVG PNG
 
@@ -71,10 +72,10 @@ function project_position(scene, point, model)
     p = Vec2f0(p[1], -p[2])
     ((((p + 1f0) / 2f0) .* (res - 1f0)) + 1f0)
 end
-project_scale(scene::Scene, s::Number) = project_scale(scene, Vec2f0(s))
-function project_scale(scene::Scene, s)
+project_scale(scene::Scene, s::Number, model = Mat4f0(I)) = project_scale(scene, Vec2f0(s), model)
+function project_scale(scene::Scene, s, model = Mat4f0(I))
     p4d = to_ndim(Vec4f0, s, 0f0)
-    p = (scene.camera.projectionview[] * p4d)[Vec(1, 2)] ./ 2f0
+    p = (scene.camera.projectionview[] * model * p4d)[Vec(1, 2)] ./ 2f0
     p .* scene.camera.resolution[]
 end
 
@@ -176,6 +177,7 @@ function draw_image(scene, screen, attributes)
     Cairo.fill(ctx)
     Cairo.restore(ctx)
 end
+_extract_color(cmap, range, c) = to_color(c)
 _extract_color(cmap, range, c::RGBf0) = RGBAf0(c, 1.0)
 _extract_color(cmap, range, c::RGBAf0) = c
 function _extract_color(cmap, range, c::Number)
@@ -186,34 +188,45 @@ function extract_color(cmap, range, c)
     red(c), green(c), blue(c), alpha(c)
 end
 
+function draw_marker(ctx, marker, pos, scale, color, strokecolor, strokewidth)
+    Cairo.set_source_rgba(ctx, color...)
+    Cairo.arc(ctx, pos[1], pos[2], scale[1] / 2, 0, 2*pi)
+    Cairo.fill(ctx)
+    sc = to_color(strokecolor)
+    Cairo.set_source_rgba(ctx, red(sc), green(sc), blue(sc), alpha(sc))
+    Cairo.set_line_width(ctx, Float64(strokewidth))
+    Cairo.arc(ctx, pos[1], pos[2], scale[1], 0, 2*pi)
+    Cairo.stroke(ctx)
+end
 
+function draw_marker(ctx, marker::Union{Rect, Type{<: Rect}}, pos, scale, color, strokecolor, strokewidth)
+    Cairo.set_source_rgba(ctx, color...)
+    Cairo.rectangle(ctx, pos..., scale[1], -scale[2])
+    Cairo.fill(ctx);
+    if strokewidth > 0.0
+        sc = to_color(strokecolor)
+        Cairo.set_source_rgba(ctx, red(sc), green(sc), blue(sc), alpha(sc))
+        Cairo.set_line_width(ctx, Float64(strokewidth))
+        Cairo.stroke(ctx)
+    end
+end
 
 function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Scatter)
-    fields = @get_attribute(primitive, (color, markersize, strokecolor, strokewidth, marker))
+    fields = @get_attribute(primitive, (color, markersize, strokecolor, strokewidth, marker, marker_offset))
     cmap = get(primitive, :colormap, nothing) |> to_value |> to_colormap
     crange = get(primitive, :colorrange, nothing) |> to_value
-
     ctx = screen.context
     model = primitive[:model][]
     positions = primitive[1][]
     isempty(positions) && return
-    broadcast_foreach(primitive[1][], fields...) do point, c, markersize, strokecolor, strokewidth, marker
+    broadcast_foreach(primitive[1][], fields...) do point, c, markersize, strokecolor, strokewidth, marker, mo
         # TODO: Implement marker
         # TODO: Accept :radius field or similar?
-        scale = project_scale(scene, markersize)
+        scale = project_scale(scene, markersize, model)
         pos = project_position(scene, point, model)
-
-        Cairo.set_source_rgba(ctx, extract_color(cmap, crange, c)...)
-        Cairo.arc(ctx, pos[1], pos[2], scale[1] / 2, 0, 2*pi)
-        Cairo.fill(ctx)
-        sc = to_color(strokecolor)
-        Cairo.set_source_rgba(ctx, red(sc), green(sc), blue(sc), alpha(sc))
-        Cairo.set_line_width(ctx, Float64(strokewidth))
-        #if linestyle != nothing
-        #    set_dash(ctx, convert_attribute(linestyle, key"linestyle"()), 0.0)
-        #end
-        Cairo.arc(ctx, pos[1], pos[2], scale[1], 0, 2*pi)
-        Cairo.stroke(ctx)
+        mo = project_scale(scene, mo)
+        pos += mo
+        draw_marker(ctx, marker, pos, scale, extract_color(cmap, crange, c), strokecolor, strokewidth)
     end
     nothing
 end
@@ -303,16 +316,6 @@ function cairo_clear(screen::CairoScreen)
     Cairo.fill(ctx)
 end
 
-function cairo_finish(screen::CairoScreen{Cairo.CairoSurfaceBase{UInt32}})
-end
-
-function cairo_finish(screen::CairoScreen)
-    finish(screen.surface)
-end
-
-
-
-
 
 function draw_background(screen::CairoScreen, scene::Scene)
     cr = screen.context
@@ -347,6 +350,8 @@ function draw_plot(screen::CairoScreen, scene::Scene)
     end
     return
 end
+
+
 function cairo_draw(screen::CairoScreen, scene::Scene)
     AbstractPlotting.update!(scene)
     draw_background(screen, scene)
@@ -375,7 +380,7 @@ AbstractPlotting.backend_showable(x::CairoBackend, m::MIME"image/png", scene::Sc
 function AbstractPlotting.backend_show(x::CairoBackend, io::IO, ::MIME"image/svg+xml", scene::Scene)
     screen = CairoScreen(scene, io)
     cairo_draw(screen, scene)
-    cairo_finish(screen)
+    Cairo.finish(screen.surface)
     (x, scene)
 end
 

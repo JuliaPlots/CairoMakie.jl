@@ -10,7 +10,6 @@ filter!(database) do entry
     "Hbox" != entry.title &&
     !("heatmap" in entry.tags) && # why though, they worked -.-
     !("mesh" in entry.tags) &&
-    !("barplot" in entry.tags) &&
     !("polygon" in entry.tags) &&
     !("image" in entry.tags)
 end
