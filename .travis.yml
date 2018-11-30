@@ -6,11 +6,12 @@ os:
 julia:
   - 1.0
   - nightly
-addons:
-  apt:
-    packages:
-    - ffmpeg
 notifications:
   email: false
 git:
   depth: 99999999
+
+before_install:
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then wget https://launchpad.net/~mc3man/+archive/ubuntu/trusty-media/+files/ffmpeg_3.3.3~trusty2_amd64.deb ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo dpkg -i ffmpeg_3.3.3~trusty2_amd64.deb ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install ffmpeg cairo; fi
