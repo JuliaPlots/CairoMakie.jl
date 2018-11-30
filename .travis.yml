@@ -1,15 +1,21 @@
-## Documentation: http://docs.travis-ci.com/user/languages/julia/
 language: julia
-os:
-  - linux
-  - osx
+
 julia:
   - 1.0
   - nightly
+
+matrix:
+  allow_failures:
+  - julia: nightly
+
 notifications:
   email: false
-git:
-  depth: 99999999
+
+os:
+  - linux
+  - osx
+
+sudo: false
 
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then wget https://launchpad.net/~mc3man/+archive/ubuntu/trusty-media/+files/ffmpeg_3.3.3~trusty2_amd64.deb ; fi

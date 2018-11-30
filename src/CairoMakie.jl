@@ -122,6 +122,85 @@ function draw_atomic(::Scene, ::CairoScreen, x)
     @warn "$(typeof(x)) is not supported by cairo right now"
 end
 
+struct FaceIterator{Iteration, T, F, ET} <: AbstractVector{ET}
+    data::T
+    faces::F
+end
+
+function (::Type{FaceIterator{Typ}})(data::T, faces::F) where {Typ, T, F}
+    FaceIterator{Typ, T, F}(data, faces)
+end
+function (::Type{FaceIterator{Typ, T, F}})(data::AbstractVector, faces::F) where {Typ, F, T}
+    FaceIterator{Typ, T, F, NTuple{3, eltype(data)}}(data, faces)
+end
+function (::Type{FaceIterator{Typ, T, F}})(data::T, faces::F) where {Typ, T, F}
+    FaceIterator{Typ, T, F, NTuple{3, T}}(data, faces)
+end
+function FaceIterator(data::AbstractVector, faces)
+    if length(data) == length(faces)
+        FaceIterator{:PerFace}(data, faces)
+    else
+        FaceIterator{:PerVert}(data, faces)
+    end
+end
+
+
+Base.size(fi::FaceIterator) = size(fi.faces)
+Base.getindex(fi::FaceIterator{:PerFace}, i::Integer) = fi.data[i]
+Base.getindex(fi::FaceIterator{:PerVert}, i::Integer) = fi.data[fi.faces[i]]
+Base.getindex(fi::FaceIterator{:Const}, i::Integer) = ntuple(i-> fi.data, 3)
+
+function per_face_colors(color, colormap, colorrange, vertices, faces)
+    if color isa Colorant
+        return FaceIterator{:Const}(color, faces)
+    elseif color isa AbstractVector
+        if color isa AbstractVector{<: Colorant}
+            return FaceIterator(color, faces)
+        elseif color isa AbstractVector{<: Number}
+            cvec = AbstractPlotting.interpolated_getindex.((colormap,), color, (colorrange,))
+            return FaceIterator(cvec, faces)
+        end
+    end
+    error("Unsupported Color type: $(typeof(color))")
+end
+
+function color2tuple3(c)
+    (red(c), green(c), blue(c))
+end
+
+function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Mesh)
+    @get_attribute(primitive, (color,))
+
+    colormap = get(primitive, :colormap, nothing) |> to_value |> to_colormap
+    colorrange = get(primitive, :colorrange, nothing) |> to_value
+
+    ctx = screen.context
+    model = primitive.model[]
+    mesh = primitive[1][]
+    vs = vertices(mesh); fs = faces(mesh);
+    pattern = Cairo.CairoPatternMesh()
+    cols = per_face_colors(color, colormap, colorrange, vs, fs)
+    for (f, (c1, c2, c3)) in zip(fs, cols)
+        t1, t2, t3 =  project_position.(scene, vs[f], (model,)) #triangle points
+        Cairo.mesh_pattern_begin_patch(pattern)
+
+        Cairo.mesh_pattern_move_to(pattern, t1...)
+        Cairo.mesh_pattern_line_to(pattern, t2...)
+        Cairo.mesh_pattern_line_to(pattern, t3...)
+
+        Cairo.mesh_pattern_set_corner_color_rgb(pattern, 0, color2tuple3(c1)...)
+        Cairo.mesh_pattern_set_corner_color_rgb(pattern, 1, color2tuple3(c2)...)
+        Cairo.mesh_pattern_set_corner_color_rgb(pattern, 2, color2tuple3(c3)...)
+
+        Cairo.mesh_pattern_end_patch(pattern)
+
+        Cairo.set_source(ctx, pattern)
+        Cairo.close_path(ctx)
+        Cairo.paint(ctx)
+    end
+    nothing
+end
+
 function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Union{Lines, LineSegments})
     fields = @get_attribute(primitive, (color, linewidth, linestyle))
     ctx = screen.context
