@@ -249,7 +249,9 @@ version = "2.3.0"
 
 [[GLMakie]]
 deps = ["AbstractPlotting", "AxisArrays", "ColorBrewer", "ColorTypes", "ColorVectorSpace", "Colors", "Contour", "FileIO", "FixedPointNumbers", "FreeType", "FreeTypeAbstraction", "GLFW", "GeometryTypes", "ImageAxes", "ImageCore", "ImageMagick", "ImageTransformations", "IndirectArrays", "IntervalSets", "IterTools", "LinearAlgebra", "Markdown", "ModernGL", "Observables", "Pkg", "PlotUtils", "Primes", "Printf", "QuartzImageIO", "Serialization", "Showoff", "StaticArrays", "UnicodeFun"]
-path = "C:\\Users\\sdani\\.julia\\dev\\GLMakie"
+git-tree-sha1 = "b603269495c4ca9c2009fc7d1dcbe90ce1495701"
+repo-rev = "master"
+repo-url = "https://github.com/JuliaPlots/GLMakie.jl.git"
 uuid = "e9467ef8-e4e7-5192-8a1a-b1aee30e663a"
 version = "0.0.1+"
 
