@@ -14,7 +14,7 @@ notifications:
 os:
   - linux
   - osx
-
+sudo: true
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./test/install_ffmpeg.sh ; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install ffmpeg; fi
