@@ -257,9 +257,11 @@ version = "0.0.1+"
 
 [[GeometryTypes]]
 deps = ["ColorTypes", "FixedPointNumbers", "IterTools", "LinearAlgebra", "StaticArrays", "Test"]
-git-tree-sha1 = "706fc16aa2a648a2f292732f8e6ee25167484328"
+git-tree-sha1 = "709ad3a31bb045cbfd706159fbe8fae4d00e091c"
+repo-rev = "sd-bb"
+repo-url = "https://github.com/JuliaGeometry/GeometryTypes.jl.git"
 uuid = "4d00f742-c7ba-57c2-abde-4428a4b178cb"
-version = "0.7.1"
+version = "0.7.1+"
 
 [[Graphics]]
 deps = ["Colors", "Compat", "NaNMath"]
