@@ -1,3 +1,4 @@
+using ImageMagick
 using CairoMakie, AbstractPlotting, MakieGallery
 
 tmp = joinpath(@__DIR__, "test.png")
