@@ -77,9 +77,9 @@ version = "0.2.0"
 
 [[CategoricalArrays]]
 deps = ["Compat", "Future", "Missings", "Printf", "Reexport", "Requires"]
-git-tree-sha1 = "64651a0315fc342e7e35d03d67b2da920937c9be"
+git-tree-sha1 = "11419d157ab75a54a8af63315e7a279a593971bc"
 uuid = "324d7699-5711-5eae-9e2f-1d82baa6b597"
-version = "0.5.0"
+version = "0.5.1"
 
 [[CodecZlib]]
 deps = ["BinaryProvider", "Libdl", "Test", "TranscodingStreams"]
@@ -248,10 +248,8 @@ uuid = "f7f18e0c-5ee9-5ccd-a5bf-e8befd85ed98"
 version = "2.3.0"
 
 [[GLMakie]]
-deps = ["AbstractPlotting", "AxisArrays", "ColorBrewer", "ColorTypes", "ColorVectorSpace", "Colors", "Contour", "FileIO", "FixedPointNumbers", "FreeType", "FreeTypeAbstraction", "GLFW", "GeometryTypes", "ImageAxes", "ImageCore", "ImageMagick", "ImageTransformations", "IndirectArrays", "IntervalSets", "IterTools", "LinearAlgebra", "MakieGallery", "Markdown", "ModernGL", "Observables", "Pkg", "PlotUtils", "Primes", "Printf", "QuartzImageIO", "Serialization", "Showoff", "StaticArrays", "Suppressor", "UnicodeFun"]
-git-tree-sha1 = "498d8beb4aa8312464ebdcc44f50cc525f40d037"
-repo-rev = "sd-tests"
-repo-url = "https://github.com/JuliaPlots/GLMakie.jl.git"
+deps = ["AbstractPlotting", "AxisArrays", "ColorBrewer", "ColorTypes", "ColorVectorSpace", "Colors", "Contour", "FileIO", "FixedPointNumbers", "FreeType", "FreeTypeAbstraction", "GLFW", "GeometryTypes", "ImageAxes", "ImageCore", "ImageMagick", "ImageTransformations", "IndirectArrays", "IntervalSets", "IterTools", "LinearAlgebra", "Markdown", "ModernGL", "Observables", "Pkg", "PlotUtils", "Primes", "Printf", "QuartzImageIO", "Serialization", "Showoff", "StaticArrays", "UnicodeFun"]
+path = "C:\\Users\\sdani\\.julia\\dev\\GLMakie"
 uuid = "e9467ef8-e4e7-5192-8a1a-b1aee30e663a"
 version = "0.0.1+"
 
@@ -404,9 +402,9 @@ version = "0.9.0+"
 deps = ["AbstractPlotting", "BinaryProvider", "ColorTypes", "ColorVectorSpace", "Colors", "DataFrames", "Documenter", "FileIO", "FixedPointNumbers", "GDAL", "GeometryTypes", "ImageCore", "ImageFiltering", "ImageMagick", "ImageTransformations", "LinearAlgebra", "Makie", "Markdown", "MeshIO", "ModernGL", "Pkg", "QuartzImageIO", "RDatasets", "Random", "Statistics", "Test"]
 git-tree-sha1 = "178252e975f92c3e11a4478577ec4a4faff4119d"
 repo-rev = "master"
-repo-url = "https://github.com/JuliaPlots/MakieGallery.jl"
-uuid = "62e31da0-2f4f-5d53-819c-a7cea9df6aaa"
-version = "0.0.0"
+repo-url = "https://github.com/JuliaPlots/MakieGallery.jl.git"
+uuid = "dbd62bd0-c9f5-5087-a2e1-f5c4bb0cec90"
+version = "0.0.1+"
 
 [[MappedArrays]]
 deps = ["Test"]
@@ -641,12 +639,6 @@ deps = ["DataStructures", "LinearAlgebra", "Missings", "Printf", "Random", "Sort
 git-tree-sha1 = "2722397d88f8ffef551948f6c20e1d74a743298c"
 uuid = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 version = "0.26.0"
-
-[[Suppressor]]
-deps = ["Compat"]
-git-tree-sha1 = "a39342763981e766a72938b59032dc02a2d74da5"
-uuid = "fd094767-a336-5f1f-9728-57cf17d0bbfb"
-version = "0.1.1"
 
 [[TableTraits]]
 deps = ["IteratorInterfaceExtensions", "Test"]
