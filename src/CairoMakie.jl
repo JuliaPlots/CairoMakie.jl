@@ -64,6 +64,8 @@ function CairoScreen(scene::Scene, path::Union{String, IO}; mode = :svg)
     # TODO: Add other surface types (PDF, etc.)
     if mode == :svg
         surf = CairoSVGSurface(path, w, h)
+    elseif mode == :pdf
+        surf = CairoPDFSurface(path, w, h)
     else
         error("No available Cairo surface for mode $mode")
     end
