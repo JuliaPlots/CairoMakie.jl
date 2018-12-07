@@ -10,7 +10,7 @@ using AbstractPlotting: @info, @get_attribute, Combined
 using AbstractPlotting: to_value, to_colormap, extrema_nan
 using Cairo: CairoContext, CairoARGBSurface, CairoSVGSurface
 
-@enum RenderType SVG PNG
+@enum RenderType SVG PNG PDF
 
 const LIB_CAIRO = if isdefined(Cairo, :libcairo)
     Cairo.libcairo
@@ -25,6 +25,7 @@ end
 
 function to_mime(x::RenderType)
     x == SVG && return MIME"image/svg+xml"()
+    x == PDF && return MIME"application/pdf"()
     return MIME"image/png"()
 end
 
@@ -36,6 +37,8 @@ function CairoBackend(path::String)
         PNG
     elseif ext == ".svg"
         SVG
+    elseif ext == ".pdf"
+        PDF
     else
         error("Unsupported extension: $ext")
     end
@@ -567,6 +570,7 @@ function AbstractPlotting.colorbuffer(screen::CairoScreen)
 end
 
 AbstractPlotting.backend_showable(x::CairoBackend, m::MIME"image/svg+xml", scene::Scene) = x.typ == SVG
+AbstractPlotting.backend_showable(x::CairoBackend, m::MIME"application/pdf", scene::Scene) = x.typ == PDF
 AbstractPlotting.backend_showable(x::CairoBackend, m::MIME"image/png", scene::Scene) = x.typ == PNG
 
 
@@ -575,6 +579,13 @@ function AbstractPlotting.backend_show(x::CairoBackend, io::IO, ::MIME"image/svg
     cairo_draw(screen, scene)
     Cairo.finish(screen.surface)
     return screen
+end
+
+function AbstractPlotting.backend_show(x::CairoBackend, io::IO, ::MIME"application/pdf", scene::Scene)
+    screen = CairoScreen(scene, io,mode=:pdf)
+    cairo_draw(screen, scene)
+    Cairo.finish(screen.surface)
+    (x, scene)
 end
 
 function AbstractPlotting.backend_show(x::CairoBackend, io::IO, m::MIME"image/png", scene::Scene)
