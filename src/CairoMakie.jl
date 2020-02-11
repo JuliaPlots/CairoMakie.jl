@@ -585,7 +585,7 @@ function AbstractPlotting.backend_show(x::CairoBackend, io::IO, ::MIME"applicati
     screen = CairoScreen(scene, io,mode=:pdf)
     cairo_draw(screen, scene)
     Cairo.finish(screen.surface)
-    (x, scene)
+    return screen
 end
 
 function AbstractPlotting.backend_show(x::CairoBackend, io::IO, m::MIME"image/png", scene::Scene)
