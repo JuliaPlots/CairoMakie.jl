@@ -1,6 +1,7 @@
 using ImageMagick
 using CairoMakie, AbstractPlotting, MakieGallery
 CairoMakie.activate!(type = "png")
+
 database = MakieGallery.load_database()
 filter!(database) do entry
     "2d" in entry.tags &&
@@ -18,3 +19,5 @@ mkpath(test_record_path)
 
 MakieGallery.record_examples(test_record_path)
 MakieGallery.run_comparison(test_record_path, tested_diff_path)
+
+include("saving.jl")
