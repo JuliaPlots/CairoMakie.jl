@@ -54,6 +54,11 @@ end
 # # we render the scene directly, since we have no screen dependant state like in e.g. opengl
 Base.insert!(screen::CairoScreen, scene::Scene, plot) = nothing
 
+function Base.show(io::IO, ::MIME"text/plain", screen::CairoScreen{S}) where S
+    println(io, "CairoScreen{$S} with surface:")
+    println(io, screen.surface)
+end
+
 # Default to Window+Canvas as backing device
 function CairoScreen(scene::Scene)
     w, h = size(scene)
@@ -603,6 +608,10 @@ function AbstractPlotting.backend_show(x::CairoBackend, io::IO, m::MIME"image/jp
     FileIO.save(FileIO.Stream(format"JPEG", io),  FileIO.load(display_path("png")))
     return screen
 end
+
+# We need to introduce another format to mime conversion
+# TODO maybe move this to FileIO?
+AbstractPlotting.format2mime(::Type{FileIO.DataFormat{:PDF}}) = MIME("application/pdf")
 
 function __init__()
     activate!()
