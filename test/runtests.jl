@@ -4,14 +4,7 @@ CairoMakie.activate!(type = "png")
 database = MakieGallery.load_database()
 filter!(database) do entry
     "2d" in entry.tags &&
-    "Text rotation" != entry.title &&
-    "fem polygon 2d" != lowercase(entry.title) &&
-    "Hbox" != entry.title &&
-    lowercase(entry.title) != "arrows on hemisphere" &&
-    lowercase(entry.title) != "cobweb plot" &&
-    lowercase(entry.title) != "streamplot animation" &&
-    !("heatmap" in entry.tags) && # why though, they worked -.-
-    !("image" in entry.tags)
+    !(lowercase(entry.title) ∈ ("arrows on hemisphere", "cobweb plot", "lots_of_heatmaps", "streamplot animation"))
 end
 
 empty!(MakieGallery.plotting_backends)
