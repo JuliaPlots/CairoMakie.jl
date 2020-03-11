@@ -610,8 +610,8 @@ function __init__()
 end
 
 function display_path(type::String)
-    if !(type in ("svg", "png"))
-        error("Only \"svg\" and \"png\" are allowed for `type`. Found: $(type)")
+    if !(type in ("svg", "png", "pdf"))
+        error("Only \"svg\", \"png\" and \"pdf\" are allowed for `type`. Found: $(type)")
     end
     return joinpath(@__DIR__, "display." * type)
 end
