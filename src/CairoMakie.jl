@@ -9,14 +9,12 @@ using AbstractPlotting: convert_attribute, @extractvalue, LineSegments, to_ndim,
 using AbstractPlotting: @info, @get_attribute, Combined
 using AbstractPlotting: to_value, to_colormap, extrema_nan
 using Cairo: CairoContext, CairoARGBSurface, CairoSVGSurface
+using AbstractPlotting.FreeType
+using AbstractPlotting.FreeTypeAbstraction
 
 @enum RenderType SVG PNG
 
-const LIB_CAIRO = if isdefined(Cairo, :libcairo)
-    Cairo.libcairo
-else
-    Cairo._jl_libcairo
-end
+include("cairo_ext.jl")
 
 struct CairoBackend <: AbstractPlotting.AbstractBackend
     typ::RenderType
@@ -56,7 +54,7 @@ function CairoScreen(scene::Scene)
     w, h = size(scene)
     surf = CairoRGBSurface(w, h)
     ctx = CairoContext(surf)
-    CairoScreen(scene, surf, ctx, nothing)
+    return CairoScreen(scene, surf, ctx, nothing)
 end
 
 function CairoScreen(scene::Scene, path::Union{String, IO}; mode = :svg)
@@ -68,7 +66,7 @@ function CairoScreen(scene::Scene, path::Union{String, IO}; mode = :svg)
         error("No available Cairo surface for mode $mode")
     end
     ctx = CairoContext(surf)
-    CairoScreen(scene, surf, ctx, nothing)
+    return CairoScreen(scene, surf, ctx, nothing)
 end
 
 function project_position(scene, point, model)
@@ -77,7 +75,7 @@ function project_position(scene, point, model)
     clip = scene.camera.projectionview[] * model * p4d
     p = (clip ./ clip[4])[Vec(1, 2)]
     p = Vec2f0(p[1], -p[2])
-    ((((p .+ 1f0) / 2f0) .* (res .- 1f0)) .+ 1f0)
+    return ((((p .+ 1f0) / 2f0) .* (res .- 1f0)) .+ 1f0)
 end
 
 project_scale(scene::Scene, s::Number, model = Mat4f0(I)) = project_scale(scene, Vec2f0(s), model)
@@ -85,17 +83,14 @@ project_scale(scene::Scene, s::Number, model = Mat4f0(I)) = project_scale(scene,
 function project_scale(scene::Scene, s, model = Mat4f0(I))
     p4d = to_ndim(Vec4f0, s, 0f0)
     p = (scene.camera.projectionview[] * model * p4d)[Vec(1, 2)] ./ 2f0
-    p .* scene.camera.resolution[]
+    return p .* scene.camera.resolution[]
 end
 
-function draw_segment(scene, ctx, point::Point, model, c, linewidth, linestyle, primitive, idx, N)
+function draw_segment(scene, ctx, point::Point, model, c, linewidth, linestyle, primitive, idx, N, close_path)
     pos = project_position(scene, point, model)
     function stroke()
         Cairo.set_line_width(ctx, Float64(linewidth))
-        Cairo.set_source_rgba(ctx, red(c), green(c), blue(c), alpha(c))
-        if linestyle != nothing
-            #set_dash(ctx, linestyle, 0.0)
-        end
+        Cairo.set_source_rgba(ctx, color2tuple4(c)...)
         Cairo.stroke(ctx)
     end
     if !all(isfinite.(pos))
@@ -113,18 +108,21 @@ function draw_segment(scene, ctx, point::Point, model, c, linewidth, linestyle, 
                 Cairo.move_to(ctx, pos[1], pos[2])
             else
                 Cairo.line_to(ctx, pos[1], pos[2])
-                Cairo.move_to(ctx, pos[1], pos[2])
             end
         end
     end
     if idx == N && isa(primitive, Lines) # after adding all points, lines need a stroke
+        if close_path
+            Cairo.close_path(ctx)
+        end
         stroke()
     end
 end
 
-function draw_segment(scene, ctx, point::Tuple{<: Point, <: Point}, model, c, linewidth, linestyle, primitive, idx, N)
-    draw_segment(scene, ctx, point[1], model, c, linewidth, linestyle, primitive, 1 + (idx - 1) * 2, N)
-    draw_segment(scene, ctx, point[2], model, c, linewidth, linestyle, primitive, (idx - 1) * 2, N)
+
+function draw_segment(scene, ctx, point::Tuple{<: Point, <: Point}, model, c, linewidth, linestyle, primitive, idx, N, close_path)
+    draw_segment(scene, ctx, point[1], model, c, linewidth, linestyle, primitive, 1 + (idx - 1) * 2, N, close_path)
+    draw_segment(scene, ctx, point[2], model, c, linewidth, linestyle, primitive, (idx - 1) * 2, N, close_path)
 end
 
 function draw_atomic(::Scene, ::CairoScreen, x)
@@ -152,7 +150,6 @@ function FaceIterator(data::AbstractVector, faces)
         FaceIterator{:PerVert}(data, faces)
     end
 end
-
 
 Base.size(fi::FaceIterator) = size(fi.faces)
 Base.getindex(fi::FaceIterator{:PerFace}, i::Integer) = fi.data[i]
@@ -183,17 +180,13 @@ function per_face_colors(color, colormap, colorrange, vertices, faces, uv)
     error("Unsupported Color type: $(typeof(color))")
 end
 
-function color2tuple3(c)
-    (red(c), green(c), blue(c))
-end
-function colorant2tuple4(c)
-    (red(c), green(c), blue(c), alpha(c))
-end
+color2tuple3(c) = (red(c), green(c), blue(c))
+color2tuple4(c) = (red(c), green(c), blue(c), alpha(c))
 
 mesh_pattern_set_corner_color(pattern, id, c::Color3) =
     Cairo.mesh_pattern_set_corner_color_rgb(pattern, id, color2tuple3(c)...)
 mesh_pattern_set_corner_color(pattern, id, c::Colorant{T,4} where T) =
-    Cairo.mesh_pattern_set_corner_color_rgba(pattern, id, colorant2tuple4(c)...)
+    Cairo.mesh_pattern_set_corner_color_rgba(pattern, id, color2tuple4(c)...)
 
 function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Mesh)
     @get_attribute(primitive, (color,))
@@ -239,13 +232,15 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Union{Lines, 
     positions = primitive[1][]
     isempty(positions) && return
     N = length(positions)
+
     if color isa AbstractArray{<: Number}
         color = AbstractPlotting.interpolated_getindex.((to_colormap(primitive.colormap[]),), color, (primitive.colorrange[],))
     end
+    close_path = positions[1] == positions[end]
     broadcast_foreach(1:N, positions, color, linewidth) do i, point, c, linewidth
-        draw_segment(scene, ctx, point, model, c, linewidth, linestyle, primitive, i, N)
+        draw_segment(scene, ctx, point, model, c, linewidth, linestyle, primitive, i, N, close_path)
     end
-    nothing
+    return
 end
 
 function to_cairo_image(img::AbstractMatrix{<: AbstractFloat}, attributes)
@@ -303,12 +298,35 @@ function _extract_color(cmap, range, c::Number)
 end
 function extract_color(cmap, range, c)
     c = _extract_color(cmap, range, c)
-    red(c), green(c), blue(c), alpha(c)
+    return color2tuple4(c)
 end
 
-function draw_marker(ctx, marker, pos, scale, strokecolor, strokewidth)
+function draw_marker(ctx, marker::Char, pos, scale, r, mo, strokecolor, strokewidth)
+    Cairo.save(ctx)
+    font = best_font(marker)
+    marker_str = string(marker)
+    set_ft_font(ctx, font)
+    extent = Cairo.text_extents(ctx, marker_str)
+    xo, yo = extent[1:2]
+    w, h = extent[3:4]
+    mat = scale_matrix(scale...)
+    set_font_matrix(ctx, mat)
+    Cairo.translate(ctx, pos[1], pos[2])
+    Cairo.rotate(ctx, 2acos(r[4]))
+    Cairo.translate(ctx, -w, h/2)
+    Cairo.show_text(ctx, marker_str)
+    Cairo.fill(ctx)
+    Cairo.restore(ctx)
+end
+
+function draw_marker(ctx, marker, pos, scale, r, mo, strokecolor, strokewidth)
+    pos += Point2f0(mo[1], -mo[2])
     pos += Point2f0(scale[1] / 2, -scale[2] / 2)
-    Cairo.arc(ctx, pos[1], pos[2], scale[1] / 2, 0, 2*pi)
+    marker_scale = scale[1] / 2
+    if marker_scale < 0.5
+        marker_scale += 0.25
+    end
+    Cairo.arc(ctx, pos..., marker_scale, 0, 2*pi)
     Cairo.fill(ctx)
     sc = to_color(strokecolor)
     if strokewidth > 0.0
@@ -318,28 +336,11 @@ function draw_marker(ctx, marker, pos, scale, strokecolor, strokewidth)
     end
 end
 
-function draw_marker(ctx, marker::Char, pos, scale, strokecolor, strokewidth)
-    pos += Point2f0(scale[1] / 2, -scale[2] / 2)
-
-    #TODO this shouldn't be hardcoded, but isn't available in the plot right now
-    font = AbstractPlotting.assetpath("DejaVu Sans")
-    Cairo.select_font_face(
-        ctx, font,
-        Cairo.FONT_SLANT_NORMAL,
-        Cairo.FONT_WEIGHT_NORMAL
-    )
-    Cairo.move_to(ctx, pos[1], pos[2])
-    mat = scale_matrix(scale...)
-    set_font_matrix(ctx, mat)
-    Cairo.show_text(ctx, string(marker))
-    Cairo.fill(ctx)
-end
-
-
-function draw_marker(ctx, marker::Union{Rect, Type{<: Rect}}, pos, scale, strokecolor, strokewidth)
+function draw_marker(ctx, marker::Union{Rect, Type{<: Rect}}, pos, scale, r, mo, strokecolor, strokewidth)
+    pos += Point2f0(mo[1], -mo[2])
     s2 = Point2f0(scale[1], -scale[2])
     Cairo.rectangle(ctx, pos..., s2...)
-    Cairo.fill(ctx);
+    Cairo.fill(ctx)
     if strokewidth > 0.0
         sc = to_color(strokecolor)
         Cairo.set_source_rgba(ctx, red(sc), green(sc), blue(sc), alpha(sc))
@@ -349,58 +350,31 @@ function draw_marker(ctx, marker::Union{Rect, Type{<: Rect}}, pos, scale, stroke
 end
 
 function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Scatter)
-    fields = @get_attribute(primitive, (color, markersize, strokecolor, strokewidth, marker, marker_offset))
+    fields = @get_attribute(primitive, (color, markersize, strokecolor, strokewidth, marker, marker_offset, rotations))
     @get_attribute(primitive, (transform_marker,))
 
-    cmap = get(primitive, :colormap, nothing) |> to_value |> to_colormap
-    crange = get(primitive, :colorrange, nothing) |> to_value
+    cmap = to_colormap(to_value(get(primitive, :colormap, nothing)))
+    crange = to_value(get(primitive, :colorrange, nothing))
     ctx = screen.context
     model = primitive[:model][]
     positions = primitive[1][]
     isempty(positions) && return
     size_model = transform_marker ? model : Mat4f0(I)
-    broadcast_foreach(primitive[1][], fields...) do point, c, markersize, strokecolor, strokewidth, marker, mo
+    broadcast_foreach(primitive[1][], fields...) do point, c, markersize, strokecolor, strokewidth, marker, mo, r
         scale = project_scale(scene, markersize, size_model)
         pos = project_position(scene, point, model)
         mo = project_scale(scene, mo, size_model)
-        pos += Point2f0(mo[1], -mo[2])
         Cairo.set_source_rgba(ctx, extract_color(cmap, crange, c)...)
         m = convert_attribute(marker, key"marker"(), key"scatter"())
-        draw_marker(ctx, m, pos, scale, strokecolor, strokewidth)
+        Cairo.save(ctx)
+        draw_marker(ctx, m, pos, scale, r, mo, strokecolor, strokewidth)
+        Cairo.restore(ctx)
     end
-    nothing
+    return
 end
 
 scale_matrix(x, y) = Cairo.CairoMatrix(x, 0.0, 0.0, y, 0.0, 0.0)
-function rot_scale_matrix(x, y, q)
-    sx, sy, sz = 2q[4]*q[1], 2q[4]*q[2], 2q[4]*q[3]
-    xx, xy, xz = 2q[1]^2, 2q[1]*q[2], 2q[1]*q[3]
-    yy, yz, zz = 2q[2]^2, 2q[2]*q[3], 2q[3]^2
-    m = Cairo.CairoMatrix(
-        x, 1 - (xx + zz), yz + sx,
-        y, yz - sx, 1 - (xx + yy)
-    )
-    m
-end
 
-function set_font_matrix(cr, matrix)
-    ccall((:cairo_set_font_matrix, LIB_CAIRO), Cvoid, (Ptr{Cvoid}, Ptr{Cvoid}), cr.ptr, Ref(matrix))
-end
-
-
-function set_ft_font(cr, font)
-    font_face = ccall(
-        (:cairo_ft_font_face_create_for_ft_face, LIB_CAIRO),
-        Ptr{Cvoid}, (Ptr{Cvoid}, Cint),
-        font, 0
-    )
-    ccall((:cairo_set_font_face, LIB_CAIRO), Cvoid, (Ptr{Cvoid}, Ptr{Cvoid}), cr.ptr, font_face)
-end
-fontname(x::String) = x
-fontname(x::Symbol) = string(x)
-function fontname(x::NativeFont)
-    return x.family_name
-end
 
 function fontscale(atlas, scene, c, font, s)
     s = (s ./ atlas.scale[AbstractPlotting.glyph_index!(atlas, c, font)]) ./ 0.02
@@ -409,7 +383,7 @@ end
 
 function to_rel_scale(atlas, c, font, scale)
     gs = atlas.scale[AbstractPlotting.glyph_index!(atlas, c, font)]
-    (scale ./ 0.02) ./ gs
+    return (scale ./ 0.02) ./ gs
 end
 
 function calc_position(
@@ -437,6 +411,7 @@ function calc_position(glyphs, start_pos, scales, fonts, atlas)
     end
     positions
 end
+
 function layout_text(
         string::AbstractString, startpos::VecTypes{N, T}, textsize::Number,
         font, align, rotation, model
@@ -454,11 +429,10 @@ function layout_text(
     aoffsetn = AbstractPlotting.to_ndim(Point3f0, aoffset, 0f0)
     positions = map(positions2d) do p
         pn = rot * (AbstractPlotting.to_ndim(Point3f0, p, 0f0) .+ aoffsetn)
-        pn .+ (pos)
+        return pn .+ (pos)
     end
     positions, scales
 end
-
 
 function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Text)
     ctx = screen.context
@@ -480,24 +454,17 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Text)
         stridx = nextind(txt, stridx)
         rels = to_rel_scale(atlas, char, f, ts)
         pos = project_position(scene, p, Mat4f0(I))
-        Cairo.move_to(ctx, pos[1], pos[2])
         Cairo.set_source_rgba(ctx, red(cc), green(cc), blue(cc), alpha(cc))
-        Cairo.select_font_face(
-            ctx, fontname(f),
-            Cairo.FONT_SLANT_NORMAL,
-            Cairo.FONT_WEIGHT_NORMAL
-        )
-        #set_ft_font(ctx, f)
+        set_ft_font(ctx, f)
         ts = fontscale(atlas, scene, char, f, ts)
         mat = scale_matrix(ts...)
         set_font_matrix(ctx, mat)
-        # set_font_size(ctx, 16)
-        # TODO this only works in 2d
+        Cairo.move_to(ctx, pos[1], pos[2])
         Cairo.rotate(ctx, 2acos(r[4]))
         Cairo.show_text(ctx, string(char))
         Cairo.restore(ctx)
     end
-    nothing
+    return
 end
 
 function cairo_clear(screen::CairoScreen)
@@ -524,7 +491,12 @@ function draw_background(screen::CairoScreen, scene::Scene)
 end
 
 function draw_plot(scene::Scene, screen::CairoScreen, primitive::Combined)
-    isempty(primitive.plots) && return draw_atomic(scene, screen, primitive)
+    if isempty(primitive.plots)
+        Cairo.save(screen.context)
+        draw_atomic(scene, screen, primitive)
+        Cairo.restore(screen.context)
+        return
+    end
     for plot in primitive.plots
         draw_plot(scene, screen, plot)
     end
