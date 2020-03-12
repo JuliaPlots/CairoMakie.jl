@@ -2,10 +2,15 @@ using ImageMagick
 using CairoMakie, AbstractPlotting, MakieGallery
 CairoMakie.activate!(type = "png")
 
+include("saving.jl") # test saving params
+
 database = MakieGallery.load_database()
 filter!(database) do entry
     "2d" in entry.tags &&
-    !(lowercase(entry.title) ∈ ("arrows on hemisphere", "cobweb plot", "lots_of_heatmaps", "streamplot animation"))
+    !(lowercase(entry.title) ∈ (
+        "arrows on hemisphere", "cobweb plot", "lots_of_heatmaps",
+        "streamplot animation", "test heatmap + image overlap", "lots of heatmaps"
+    ))
 end
 
 empty!(MakieGallery.plotting_backends)
@@ -19,5 +24,3 @@ mkpath(test_record_path)
 
 MakieGallery.record_examples(test_record_path)
 MakieGallery.run_comparison(test_record_path, tested_diff_path)
-
-include("saving.jl")

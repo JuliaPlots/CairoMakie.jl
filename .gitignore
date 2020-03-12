@@ -4,3 +4,7 @@
 /src/display.*
 Manifest.toml
 .DS_Store
+
+# BenchmarkCI.jl
+/.benchmarkci
+/benchmark/*.json
