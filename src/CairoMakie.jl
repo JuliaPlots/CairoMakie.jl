@@ -14,6 +14,8 @@ using AbstractPlotting.FreeTypeAbstraction
 
 @enum RenderType SVG PNG PDF
 
+include("cairo_piracy.jl")
+
 include("cairo_ext.jl")
 
 struct CairoBackend <: AbstractPlotting.AbstractBackend
@@ -100,7 +102,7 @@ function draw_segment(scene, ctx, point::Point, model, c, linewidth, linestyle, 
     pos = project_position(scene, point, model)
     function stroke()
         Cairo.set_line_width(ctx, Float64(linewidth))
-        Cairo.set_source_rgba(ctx, color2tuple4(c)...)
+        Cairo.set_source_rgba(ctx, c)
         Cairo.stroke(ctx)
     end
     if !all(isfinite.(pos))
@@ -328,6 +330,15 @@ function draw_marker(ctx, marker::Char, pos, scale, r, mo, strokecolor, strokewi
     Cairo.translate(ctx, -h/2, -w/2)
     Cairo.show_text(ctx, marker_str)
     Cairo.fill(ctx)
+
+    if strokewidth > 0.0
+        sc = to_color(strokecolor)
+        Cairo.set_source_rgba(ctx, sc)
+        Cairo.set_line_width(ctx, Float64(strokewidth))
+        Cairo.text_path(ctx, marker_str)
+        Cairo.stroke(ctx)
+    end
+
     Cairo.restore(ctx)
 end
 
@@ -341,7 +352,7 @@ function draw_marker(ctx, marker, pos, scale, r, mo, strokecolor, strokewidth)
     Cairo.fill(ctx)
     sc = to_color(strokecolor)
     if strokewidth > 0.0
-        Cairo.set_source_rgba(ctx, red(sc), green(sc), blue(sc), alpha(sc))
+        Cairo.set_source_rgba(ctx, sc)
         Cairo.set_line_width(ctx, Float64(strokewidth))
         Cairo.stroke(ctx)
     end
@@ -354,7 +365,7 @@ function draw_marker(ctx, marker::Union{Rect, Type{<: Rect}}, pos, scale, r, mo,
     Cairo.fill(ctx)
     if strokewidth > 0.0
         sc = to_color(strokecolor)
-        Cairo.set_source_rgba(ctx, red(sc), green(sc), blue(sc), alpha(sc))
+        Cairo.set_source_rgba(ctx, sc)
         Cairo.set_line_width(ctx, Float64(strokewidth))
         Cairo.stroke(ctx)
     end
@@ -465,7 +476,7 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Text)
         stridx = nextind(txt, stridx)
         rels = to_rel_scale(atlas, char, f, ts)
         pos = project_position(scene, p, Mat4f0(I))
-        Cairo.set_source_rgba(ctx, red(cc), green(cc), blue(cc), alpha(cc))
+        Cairo.set_source_rgba(ctx, cc)
         set_ft_font(ctx, f)
         ts = fontscale(atlas, scene, char, f, ts)
         mat = scale_matrix(ts...)
@@ -492,7 +503,7 @@ function draw_background(screen::CairoScreen, scene::Scene)
     Cairo.save(cr)
     if scene.clear[]
         bg = to_color(theme(scene, :backgroundcolor)[])
-        Cairo.set_source_rgba(cr, red(bg), green(bg), blue(bg), alpha(bg));    # light gray
+        Cairo.set_source_rgba(cr, bg);    # light gray
         r = pixelarea(scene)[]
         Cairo.rectangle(cr, minimum(r)..., widths(r)...) # background
         fill(cr)
