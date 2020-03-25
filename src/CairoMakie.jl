@@ -316,7 +316,27 @@ function extract_color(cmap, range, c)
     red(c), green(c), blue(c), alpha(c)
 end
 
-function draw_marker(ctx, marker, pos, scale, strokecolor, strokewidth)
+function draw_marker(ctx, marker::Char, pos, scale, r, mo, strokecolor, strokewidth)
+    Cairo.save(ctx)
+    font = best_font(marker)
+    marker_str = string(marker)
+    set_ft_font(ctx, font)
+    mat = scale_matrix(scale...)
+    set_font_matrix(ctx, mat)
+
+    extent = Cairo.text_extents(ctx, marker_str)
+    xo, yo = extent[1:2]
+    w, h = extent[3:4]
+
+    Cairo.translate(ctx, pos[1], pos[2])
+    Cairo.rotate(ctx, 2acos(r[4]))
+    Cairo.translate(ctx, -h/2, -w/2)
+    Cairo.show_text(ctx, marker_str)
+    Cairo.fill(ctx)
+    Cairo.restore(ctx)
+end
+
+function draw_marker(ctx, marker, pos, scale, r, mo, strokecolor, strokewidth)
     pos += Point2f0(scale[1] / 2, -scale[2] / 2)
     Cairo.arc(ctx, pos[1], pos[2], scale[1] / 2, 0, 2*pi)
     Cairo.fill(ctx)
