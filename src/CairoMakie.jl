@@ -326,6 +326,12 @@ function draw_marker(ctx, marker::Char, pos, scale, r, mo, strokecolor, strokewi
     w, h = extent[3:4]
 
     Cairo.translate(ctx, pos[1], pos[2])
+    # This rotation is because of how quaternions are defined.  In general,
+    # q.x = sin(theta/2) * axis.x
+    # q.y = sin(theta/2) * axis.y
+    # q.z = sin(theta/2) * axis.z
+    # q.w = cos(theta/2)
+    # and therefore we can extract theta from the last term through `2*acos(q.w)`.
     Cairo.rotate(ctx, 2acos(r[4]))
     Cairo.translate(ctx, -h/2, -w/2)
     Cairo.show_text(ctx, marker_str)
@@ -354,6 +360,7 @@ function draw_marker(ctx, marker, pos, scale, r, mo, strokecolor, strokewidth)
     if strokewidth > 0.0
         Cairo.set_source_rgba(ctx, sc)
         Cairo.set_line_width(ctx, Float64(strokewidth))
+        Cairo.arc(ctx, pos..., marker_scale, 0, 2*pi)
         Cairo.stroke(ctx)
     end
 end
@@ -367,6 +374,7 @@ function draw_marker(ctx, marker::Union{Rect, Type{<: Rect}}, pos, scale, r, mo,
         sc = to_color(strokecolor)
         Cairo.set_source_rgba(ctx, sc)
         Cairo.set_line_width(ctx, Float64(strokewidth))
+        Cairo.rectangle(ctx, pos..., s2...)
         Cairo.stroke(ctx)
     end
 end
@@ -482,7 +490,7 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Text)
         mat = scale_matrix(ts...)
         set_font_matrix(ctx, mat)
         Cairo.move_to(ctx, pos[1], pos[2])
-        Cairo.rotate(ctx, 2acos(r[4]))
+        Cairo.rotate(ctx, 2acos(r[4])) # see the comment in draw_marker for why
         Cairo.show_text(ctx, string(char))
         Cairo.restore(ctx)
     end
