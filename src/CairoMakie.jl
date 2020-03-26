@@ -354,6 +354,8 @@ function draw_marker(ctx, marker, pos, scale, r, mo, strokecolor, strokewidth)
     if marker_scale < 0.5
         marker_scale += 0.25
     end
+
+    Cairo.translate(ctx, mo[1], -mo[2])
     Cairo.arc(ctx, pos..., marker_scale, 0, 2*pi)
     Cairo.fill(ctx)
     sc = to_color(strokecolor)
