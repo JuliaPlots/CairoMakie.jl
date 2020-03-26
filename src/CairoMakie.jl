@@ -326,6 +326,7 @@ function draw_marker(ctx, marker::Char, pos, scale, r, mo, strokecolor, strokewi
     w, h = extent[3:4]
 
     Cairo.translate(ctx, pos[1], pos[2])
+    Cairo.translate(ctx, -w, h/2)
     # This rotation is because of how quaternions are defined.  In general,
     # q.x = sin(theta/2) * axis.x
     # q.y = sin(theta/2) * axis.y
@@ -333,7 +334,6 @@ function draw_marker(ctx, marker::Char, pos, scale, r, mo, strokecolor, strokewi
     # q.w = cos(theta/2)
     # and therefore we can extract theta from the last term through `2*acos(q.w)`.
     Cairo.rotate(ctx, 2acos(r[4]))
-    Cairo.translate(ctx, -h/2, -w/2)
     Cairo.show_text(ctx, marker_str)
     Cairo.fill(ctx)
 
