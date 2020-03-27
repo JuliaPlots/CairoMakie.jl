@@ -1,6 +1,9 @@
 using ImageMagick
 using CairoMakie, AbstractPlotting, MakieGallery
 CairoMakie.activate!(type = "png")
+
+include("saving.jl") # test saving params
+
 database = MakieGallery.load_database()
 filter!(database) do entry
     "2d" in entry.tags &&
