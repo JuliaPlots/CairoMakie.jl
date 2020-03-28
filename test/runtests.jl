@@ -1,4 +1,4 @@
-using ImageMagick
+using ImageMagick, Test
 using CairoMakie, AbstractPlotting, MakieGallery
 CairoMakie.activate!(type = "png")
 
