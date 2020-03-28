@@ -41,7 +41,7 @@ jobs:
         uses: actions/upload-artifact@v1.0.0
         with:
           name: Recordings
-          path: ./test/test_format
+          path: ./test/test_formats
           
       - name: Cache artifacts
         uses: actions/cache@v1
