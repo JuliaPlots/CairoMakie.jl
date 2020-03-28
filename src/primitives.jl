@@ -63,7 +63,10 @@ end
 #                                   Scatter                                    #
 ################################################################################
 
-function draw_marker(ctx, marker, pos, scale, strokecolor, strokewidth)
+function draw_marker(ctx, marker, pos, scale,
+                    strokecolor, strokewidth, rotation,
+                    mo, font
+                )
     pos += Point2f0(scale[1] / 2, -scale[2] / 2)
     Cairo.arc(ctx, pos[1], pos[2], scale[1] / 2, 0, 2*pi)
     Cairo.fill(ctx)
@@ -75,26 +78,53 @@ function draw_marker(ctx, marker, pos, scale, strokecolor, strokewidth)
     end
 end
 
-function draw_marker(ctx, marker::Char, pos, scale, strokecolor, strokewidth)
+function draw_marker(ctx, marker::Char, pos, scale, strokecolor, strokewidth, rotation, mo, font)
     pos += Point2f0(scale[1] / 2, -scale[2] / 2)
 
-    #TODO this shouldn't be hardcoded, but isn't available in the plot right now
-    font = AbstractPlotting.assetpath("DejaVu Sans")
-    Cairo.select_font_face(
-        ctx, font,
-        Cairo.FONT_SLANT_NORMAL,
-        Cairo.FONT_WEIGHT_NORMAL
-    )
-    Cairo.move_to(ctx, pos[1], pos[2])
+    # Look for alternative fonts if the chosen font cannot support the marker.
+    font = best_font(marker, font)
+
+    # Set the font to the preferred one
+    set_ft_font(ctx, font)
+
     mat = scale_matrix(scale...)
     set_font_matrix(ctx, mat)
-    Cairo.show_text(ctx, string(marker))
-    Cairo.fill(ctx)
+
+    # Move to the marker position and rotate appropriately
+    Cairo.translate(ctx, pos[1], pos[2])
+    Cairo.rotate(ctx, -2acos(rotation[4]))
+
+    # Construct a glyph to be placed
+    glyph = CairoGlyph(font, marker)
+
+    extent = glyph_extents(ctx, [glyph])
+
+    w, h = extent[3:4]
+
+    print("hi")
+
+    Cairo.translate(ctx, -w/2, h/2)
+
+    # Show the glyph
+    show_glyphs(ctx, [glyph])
+
+    if strokewidth > 0.0
+        sc = to_color(strokecolor)
+        Cairo.set_source_rgba(ctx, sc)
+        Cairo.set_line_width(ctx, Float64(strokewidth))
+        Cairo.text_path(ctx, marker_str)
+        Cairo.stroke(ctx)
+    end
 end
 
 
-function draw_marker(ctx, marker::Union{Rect, Type{<: Rect}}, pos, scale, strokecolor, strokewidth)
+function draw_marker(ctx, marker::Union{Rect, Type{<: Rect}}, pos, scale, strokecolor, strokewidth, rotation, mo, font)
+    pos += Point2f0(mo[1], -mo[2])
+
     s2 = Point2f0(scale[1], -scale[2])
+
+    Cairo.rotate(ctx, -2acos(rotation[4]))
+
     Cairo.rectangle(ctx, pos..., s2...)
     Cairo.fill(ctx);
     if strokewidth > 0.0
@@ -106,24 +136,44 @@ function draw_marker(ctx, marker::Union{Rect, Type{<: Rect}}, pos, scale, stroke
 end
 
 function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Scatter)
-    fields = @get_attribute(primitive, (color, markersize, strokecolor, strokewidth, marker, marker_offset))
+    fields = @get_attribute(primitive, (color, markersize, strokecolor, strokewidth, marker, marker_offset, rotations))
     @get_attribute(primitive, (transform_marker,))
 
     cmap = get(primitive, :colormap, nothing) |> to_value |> to_colormap
     crange = get(primitive, :colorrange, nothing) |> to_value
+
+    font = if marker isa Char
+            if hasproperty(plot, :font)
+                best_font(marker, plot.font[])
+            else
+                best_font(marker)
+            end
+        else
+            nothing
+        end
+
     ctx = screen.context
     model = primitive[:model][]
     positions = primitive[1][]
     isempty(positions) && return
     size_model = transform_marker ? model : Mat4f0(I)
-    broadcast_foreach(primitive[1][], fields...) do point, c, markersize, strokecolor, strokewidth, marker, mo
+    broadcast_foreach(primitive[1][], fields..., font) do point, c, markersize, strokecolor, strokewidth, marker, mo, rotation, font
+
         scale = project_scale(scene, markersize, size_model)
+
         pos = project_position(scene, point, model)
+
         mo = project_scale(scene, mo, size_model)
-        pos += Point2f0(mo[1], -mo[2])
+
         Cairo.set_source_rgba(ctx, extract_color(cmap, crange, c)...)
+
         m = convert_attribute(marker, key"marker"(), key"scatter"())
-        draw_marker(ctx, m, pos, scale, strokecolor, strokewidth)
+
+        Cairo.save(ctx)
+
+        draw_marker(ctx, m, pos, scale, strokecolor, strokewidth, rotation, mo, font)
+
+        Cairo.restore(ctx)
     end
     nothing
 end
@@ -137,8 +187,6 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Text)
     @get_attribute(primitive, (textsize, color, font, align, rotation, model))
     txt = to_value(primitive[1])
     position = primitive.attributes[:position][]
-
-    @show position
 
     N = length(txt)
     atlas = AbstractPlotting.get_texture_atlas()
@@ -212,7 +260,7 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Union{Heatmap
     # Set filter doesn't work!?
     Cairo.pattern_set_filter(p, interp)
     Cairo.fill(ctx)
-    
+
     Cairo.restore(ctx)
 end
 
@@ -234,10 +282,11 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Mesh)
     pattern = Cairo.CairoPatternMesh()
 
     if mesh.attributes !== nothing && mesh.attribute_id !== nothing
-    if mesh.attributes !== nothing && mesh.attribute_id !== nothing
         color = mesh.attributes[Int.(mesh.attribute_id .+ 1)]
     end
+
     cols = per_face_colors(color, colormap, colorrange, vs, fs, uv)
+
     for (f, (c1, c2, c3)) in zip(fs, cols)
         t1, t2, t3 =  project_position.(scene, vs[f], (model,)) #triangle points
         Cairo.mesh_pattern_begin_patch(pattern)

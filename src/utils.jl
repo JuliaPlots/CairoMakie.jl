@@ -31,23 +31,10 @@ function rot_scale_matrix(x, y, q)
     m
 end
 
-
-function set_font_matrix(cr, matrix)
-    ccall((:cairo_set_font_matrix, LIB_CAIRO), Cvoid, (Ptr{Cvoid}, Ptr{Cvoid}), cr.ptr, Ref(matrix))
-end
-
 ################################################################################
 #                                Font utilities                                #
 ################################################################################
 
-function set_ft_font(cr, font)
-    font_face = ccall(
-        (:cairo_ft_font_face_create_for_ft_face, LIB_CAIRO),
-        Ptr{Cvoid}, (Ptr{Cvoid}, Cint),
-        font, 0
-    )
-    ccall((:cairo_set_font_face, LIB_CAIRO), Cvoid, (Ptr{Cvoid}, Ptr{Cvoid}), cr.ptr, font_face)
-end
 fontname(x::String) = x
 fontname(x::Symbol) = string(x)
 function fontname(x::NativeFont)
