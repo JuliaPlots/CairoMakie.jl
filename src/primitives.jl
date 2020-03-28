@@ -101,8 +101,6 @@ function draw_marker(ctx, marker::Char, pos, scale, strokecolor, strokewidth, ro
 
     w, h = extent[3:4]
 
-    print("hi")
-
     Cairo.translate(ctx, -w/2, h/2)
 
     # Show the glyph
