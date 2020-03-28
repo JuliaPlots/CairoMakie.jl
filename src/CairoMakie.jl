@@ -101,7 +101,7 @@ end
 function draw_segment(scene, ctx, point::Point, model, c, linewidth, linestyle, primitive, idx, N)
     pos = project_position(scene, point, model)
     function stroke()
-        Cairo.set_line_dash(ctx, linestyle)
+        Cairo.set_dash(ctx, linestyle)
         Cairo.set_line_width(ctx, Float64(linewidth))
         Cairo.set_source_rgba(ctx, red(c), green(c), blue(c), alpha(c))
         if linestyle != nothing
