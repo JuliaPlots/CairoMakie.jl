@@ -584,11 +584,23 @@ function AbstractPlotting.backend_show(x::CairoBackend, io::IO, ::MIME"applicati
     return screen
 end
 
-function AbstractPlotting.backend_show(x::CairoBackend, io::IO, m::MIME"image/png", scene::Scene)
-    screen = CairoScreen(scene, io)
-    cairo_draw(screen, scene)
-    Cairo.write_to_png(screen.surface, io)
-    return screen
+function AbstractPlotting.backend_show(x::CairoBackend, io::IO, m::MIME"image/png", scene::Scene; dpi::Int = 72)
+    if dpi == 72
+        screen = CairoScreen(scene, io)
+        cairo_draw(screen, scene)
+        Cairo.write_to_png(screen.surface, io)
+        return screen
+    else
+        sio = IOBuffer()
+        AbstractPlotting.backend_show(AbstractPlotting.current_backend[], sio, MIME("image/svg+xml"), scene)
+        handle = Rsvg.handle_new_from_data(read(sio, String))
+        Rsvg.handle_set_dpi(handle, dpi)
+        d = Rsvg.handle_get_dimensions(r);
+        cs = Cairo.CairoImageSurface(d.width,d.height,Cairo.FORMAT_ARGB32);
+        c = Cairo.CairoContext(cs);
+        Rsvg.handle_render_cairo(c,r);
+        Cairo.write_to_png(cs, io);
+    end
 end
 
 function AbstractPlotting.backend_show(x::CairoBackend, io::IO, m::MIME"image/jpeg", scene::Scene)
