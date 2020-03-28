@@ -137,6 +137,9 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Text)
     @get_attribute(primitive, (textsize, color, font, align, rotation, model))
     txt = to_value(primitive[1])
     position = primitive.attributes[:position][]
+
+    @show position
+
     N = length(txt)
     atlas = AbstractPlotting.get_texture_atlas()
     if position isa StaticArrays.StaticArray # one position to place text
@@ -178,27 +181,38 @@ end
 
 function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Union{Heatmap, Image})
     ctx = screen.context
-    image = attributes[3][]
-    x, y = attributes[1][], attributes[2][]
-    model = attributes[:model][]
+
+    image = primitive[3][]
+    x, y = primitive[1][], primitive[2][]
+
+    model = primitive[:model][]
+
     imsize = (extrema_nan(x), extrema_nan(y))
+
     xy_ = project_position(scene, Point2f0(first.(imsize)), model)
     xymax_ = project_position(scene, Point2f0(last.(imsize)), model)
     xy = min.(xy_, xymax_)
     xymax = max.(xy_, xymax_)
     w, h = xymax .- xy
-    interp = to_value(get(attributes, :interpolate, true))
+
+    interp = to_value(get(primitive, :interpolate, true))
     interp = interp ? Cairo.FILTER_BEST : Cairo.FILTER_NEAREST
-    s = to_cairo_image(image, attributes)
+
+    s = to_cairo_image(image, primitive)
+
     Cairo.rectangle(ctx, xy..., w, h)
     Cairo.save(ctx)
+
     Cairo.translate(ctx, xy[1], xy[2])
     Cairo.scale(ctx, w / s.width, h / s.height)
+
     Cairo.set_source_surface(ctx, s, 0, 0)
+
     p = Cairo.get_source(ctx)
     # Set filter doesn't work!?
     Cairo.pattern_set_filter(p, interp)
     Cairo.fill(ctx)
+    
     Cairo.restore(ctx)
 end
 
@@ -219,6 +233,7 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Mesh)
     uv = hastexturecoordinates(mesh) ? texturecoordinates(mesh) : nothing
     pattern = Cairo.CairoPatternMesh()
 
+    if mesh.attributes !== nothing && mesh.attribute_id !== nothing
     if mesh.attributes !== nothing && mesh.attribute_id !== nothing
         color = mesh.attributes[Int.(mesh.attribute_id .+ 1)]
     end
