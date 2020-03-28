@@ -592,7 +592,7 @@ function AbstractPlotting.backend_show(x::CairoBackend, io::IO, m::MIME"image/pn
         return screen
     else
         sio = IOBuffer()
-        AbstractPlotting.backend_show(AbstractPlotting.current_backend[], sio, MIME("image/svg+xml"), scene)
+        AbstractPlotting.backend_show(x, sio, MIME("image/svg+xml"), scene)
         handle = Rsvg.handle_new_from_data(read(sio, String))
         Rsvg.handle_set_dpi(handle, dpi)
         d = Rsvg.handle_get_dimensions(r);
