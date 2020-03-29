@@ -51,7 +51,7 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Union{Lines, 
     isempty(positions) && return
     N = length(positions)
     if color isa AbstractArray{<: Number}
-        color = AbstractPlotting.interpolated_getindex.((to_colormap(primitive.colormap[]),), color, (primitive.colorrange[],))
+        color = AbstractPlotting.interpolated_getindex.((AbstractPlotting.to_colormap(primitive.colormap[]),), color, (primitive.colorrange[],))
     end
     broadcast_foreach(1:N, positions, color, linewidth) do i, point, c, linewidth
         draw_segment(scene, ctx, point, model, c, linewidth, linestyle, primitive, i, N)
@@ -81,6 +81,8 @@ end
 function draw_marker(ctx, marker::Char, pos, scale, strokecolor, strokewidth, rotation, mo, font)
     pos += Point2f0(scale[1] / 2, -scale[2] / 2)
 
+    pos += Point2f0(mo[1], -mo[2])
+
     # Look for alternative fonts if the chosen font cannot support the marker.
     font = best_font(marker, font)
 
@@ -101,7 +103,9 @@ function draw_marker(ctx, marker::Char, pos, scale, strokecolor, strokewidth, ro
 
     w, h = extent[3:4]
 
-    Cairo.translate(ctx, -w/2, h/2)
+    Cairo.translate(ctx, -w, h/2)
+
+    @debug (w, h)
 
     # Show the glyph
     show_glyphs(ctx, [glyph])
