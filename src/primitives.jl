@@ -9,7 +9,7 @@ function draw_segment(scene, ctx, point::Point, model, c, linewidth, linestyle, 
         Cairo.set_line_width(ctx, Float64(linewidth))
         Cairo.set_source_rgba(ctx, red(c), green(c), blue(c), alpha(c))
         if linestyle != nothing
-            #set_dash(ctx, linestyle, 0.0)
+            Cairo.set_dash(ctx, linestyle, 0.0)
         end
         Cairo.stroke(ctx)
     end
@@ -103,9 +103,9 @@ function draw_marker(ctx, marker::Char, pos, scale, strokecolor, strokewidth, ro
 
     w, h = extent[3:4]
 
-    Cairo.translate(ctx, -w, h/2)
+    Cairo.translate(ctx, -w/2, h/2)
 
-    @debug (w, h)
+    @show FreeTypeAbstraction.fontname(font)
 
     # Show the glyph
     show_glyphs(ctx, [glyph])
@@ -145,14 +145,14 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Scatter)
     crange = get(primitive, :colorrange, nothing) |> to_value
 
     font = if marker isa Char
-            if hasproperty(plot, :font)
-                best_font(marker, plot.font[])
-            else
-                best_font(marker)
-            end
+            pfont = to_font.(to_value(get(primitive, :font, AbstractPlotting.defaultfont())))
+            best_font.(marker, pfont)
         else
             nothing
         end
+
+    # @show FreeTypeAbstraction.fontname(font)
+    # @show primitive.font
 
     ctx = screen.context
     model = primitive[:model][]
