@@ -61,7 +61,7 @@ end
 
 function CairoGlyph(font::FreeTypeAbstraction.FTFont, char::Char, x=0.0, y=0.0)
     idx = FreeType.FT_Get_Char_Index(font, char)
-    return CairoGlyph(Culong(char), x, y)
+    return CairoGlyph(Culong(idx), x, y)
 end
 
 function show_glyphs(ctx, glyphs::Vector{CairoGlyph})
