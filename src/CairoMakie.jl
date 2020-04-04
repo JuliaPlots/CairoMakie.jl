@@ -494,6 +494,35 @@ function draw_plot(scene::Scene, screen::CairoScreen, primitive::Combined)
     end
 end
 
+function rgbatuple(c::Colorant)
+    rgba = RGBA(c)
+    red(rgba), green(rgba), blue(rgba), alpha(rgba)
+end
+
+"""
+Special method for polys so we don't fall back to atomic meshes, which are much more
+complex and slower to draw than standard paths with single color.
+"""
+function draw_plot(scene::Scene, screen::CairoScreen, poly::Poly)
+    if poly.visible[] == false
+        return
+    end
+
+    model = Mat4f0(I)
+    atomic_lines = poly.plots[2]
+    points = project_position.(Ref(scene), atomic_lines[1][], Ref(model))
+    Cairo.move_to(screen.context, points[1]...)
+    for p in points[2:end]
+        Cairo.line_to(screen.context, p...)
+    end
+    Cairo.close_path(screen.context)
+    Cairo.set_source_rgba(screen.context, rgbatuple(to_color(poly.color[]))...)
+    Cairo.fill_preserve(screen.context)
+    Cairo.set_source_rgba(screen.context, rgbatuple(to_color(poly.strokecolor[]))...)
+    Cairo.set_line_width(screen.context, poly.strokewidth[])
+    Cairo.stroke(screen.context)
+end
+
 function draw_plot(screen::CairoScreen, scene::Scene)
 
     # get the root area to correct for its pixel size when translating
