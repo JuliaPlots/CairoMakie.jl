@@ -504,9 +504,6 @@ Special method for polys so we don't fall back to atomic meshes, which are much 
 complex and slower to draw than standard paths with single color.
 """
 function draw_plot(scene::Scene, screen::CairoScreen, poly::Poly)
-    if poly.visible[] == false
-        return
-    end
     # dispatch on input arguments to poly to use smarter drawing methods than
     # meshes if possible
     draw_poly(scene, screen, poly, to_value.(poly.input_args)...)
