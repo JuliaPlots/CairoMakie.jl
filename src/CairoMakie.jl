@@ -510,14 +510,25 @@ function draw_plot(scene::Scene, screen::CairoScreen, poly::Poly)
 end
 
 """
-Fallback method for unknown args just draws mesh and lines.
+Fallback method for args without special treatment.
 """
 function draw_poly(scene::Scene, screen::CairoScreen, poly, args...)
+    draw_poly_as_mesh(scene, screen, poly)
+end
+
+function draw_poly_as_mesh(scene, screen, poly)
     draw_plot(scene, screen, poly.plots[1])
     draw_plot(scene, screen, poly.plots[2])
 end
 
 function draw_poly(scene::Scene, screen::CairoScreen, poly, points::Vector{<:Point2})
+
+    # in the rare case of per-vertex colors redirect to mesh drawing
+    if poly.color[] isa Array
+        draw_poly_as_mesh(scene, screen, poly)
+        return
+    end
+
     model = Mat4f0(I)
     points = project_position.(Ref(scene), points, Ref(model))
     Cairo.move_to(screen.context, points[1]...)
