@@ -507,10 +507,22 @@ function draw_plot(scene::Scene, screen::CairoScreen, poly::Poly)
     if poly.visible[] == false
         return
     end
+    # dispatch on input arguments to poly to use smarter drawing methods than
+    # meshes if possible
+    draw_poly(scene, screen, poly, to_value.(poly.input_args)...)
+end
 
+"""
+Fallback method for unknown args just draws mesh and lines.
+"""
+function draw_poly(scene::Scene, screen::CairoScreen, poly, args...)
+    draw_plot(scene, screen, poly.plots[1])
+    draw_plot(scene, screen, poly.plots[2])
+end
+
+function draw_poly(scene::Scene, screen::CairoScreen, poly, points::Vector{<:Point2})
     model = Mat4f0(I)
-    atomic_lines = poly.plots[2]
-    points = project_position.(Ref(scene), atomic_lines[1][], Ref(model))
+    points = project_position.(Ref(scene), points, Ref(model))
     Cairo.move_to(screen.context, points[1]...)
     for p in points[2:end]
         Cairo.line_to(screen.context, p...)
@@ -521,6 +533,30 @@ function draw_plot(scene::Scene, screen::CairoScreen, poly::Poly)
     Cairo.set_source_rgba(screen.context, rgbatuple(to_color(poly.strokecolor[]))...)
     Cairo.set_line_width(screen.context, poly.strokewidth[])
     Cairo.stroke(screen.context)
+end
+
+function project_rect(scene, rect::Rect, model)
+    mini = project_position(scene, minimum(rect), model)
+    maxi = project_position(scene, maximum(rect), model)
+    Rect(mini, maxi .- mini)
+end
+
+function draw_poly(scene::Scene, screen::CairoScreen, poly, rects::Vector{<:Rect2D})
+    model = Mat4f0(I)
+    projected_rects = project_rect.(Ref(scene), rects, Ref(model))
+
+    broadcast_foreach(projected_rects, poly.color[], poly.strokecolor[], poly.strokewidth[]) do r, c, sc, sw
+        Cairo.rectangle(screen.context, origin(r)..., widths(r)...)
+        Cairo.set_source_rgba(screen.context, rgbatuple(to_color(c))...)
+        Cairo.fill_preserve(screen.context)
+        Cairo.set_source_rgba(screen.context, rgbatuple(to_color(sc))...)
+        Cairo.set_line_width(screen.context, sw)
+        Cairo.stroke(screen.context)
+    end
+end
+
+function draw_poly(scene::Scene, screen::CairoScreen, poly, rect::Rect2D)
+    draw_poly(scene, screen, poly, [rect])
 end
 
 function draw_plot(screen::CairoScreen, scene::Scene)
