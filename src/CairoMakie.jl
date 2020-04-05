@@ -243,6 +243,21 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Mesh)
     return nothing
 end
 
+function numbers_to_colors(numbers::AbstractArray{<:Number}, primitive)
+
+    colormap = get(primitive, :colormap, nothing) |> to_value |> to_colormap
+    colorrange = get(primitive, :colorrange, nothing) |> to_value
+
+    if colorrange === AbstractPlotting.automatic
+        colorrange = extrema(numbers)
+    end
+
+    AbstractPlotting.interpolated_getindex.(
+        Ref(colormap),
+        numbers,
+        Ref(colorrange))
+end
+
 function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Union{Lines, LineSegments})
     fields = @get_attribute(primitive, (color, linewidth, linestyle))
     linestyle = AbstractPlotting.convert_attribute(linestyle, AbstractPlotting.key"linestyle"())
@@ -252,7 +267,7 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Union{Lines, 
     isempty(positions) && return
     N = length(positions)
     if color isa AbstractArray{<: Number}
-        color = AbstractPlotting.interpolated_getindex.((to_colormap(primitive.colormap[]),), color, (primitive.colorrange[],))
+        color = numbers_to_colors(color, primitive)
     end
     broadcast_foreach(1:N, positions, color, linewidth) do i, point, c, linewidth
         draw_segment(scene, ctx, point, model, c, linewidth, linestyle, primitive, i, N)
@@ -553,7 +568,16 @@ function draw_poly(scene::Scene, screen::CairoScreen, poly, rects::Vector{<:Rect
     model = Mat4f0(I)
     projected_rects = project_rect.(Ref(scene), rects, Ref(model))
 
-    broadcast_foreach(projected_rects, poly.color[], poly.strokecolor[], poly.strokewidth[]) do r, c, sc, sw
+    color = poly.color[]
+    if color isa AbstractArray{<:Number}
+        color = numbers_to_colors(color, poly)
+    end
+    strokecolor = poly.strokecolor[]
+    if strokecolor isa AbstractArray{<:Number}
+        strokecolor = numbers_to_colors(strokecolor, poly)
+    end
+
+    broadcast_foreach(projected_rects, color, strokecolor, poly.strokewidth[]) do r, c, sc, sw
         Cairo.rectangle(screen.context, origin(r)..., widths(r)...)
         Cairo.set_source_rgba(screen.context, rgbatuple(to_color(c))...)
         Cairo.fill_preserve(screen.context)
