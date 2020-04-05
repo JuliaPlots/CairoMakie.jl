@@ -544,7 +544,7 @@ function draw_poly(scene::Scene, screen::CairoScreen, poly, points::Vector{<:Poi
         return
     end
 
-    model = Mat4f0(I)
+    model = poly.model[]
     points = project_position.(Ref(scene), points, Ref(model))
     Cairo.move_to(screen.context, points[1]...)
     for p in points[2:end]
@@ -565,7 +565,7 @@ function project_rect(scene, rect::Rect, model)
 end
 
 function draw_poly(scene::Scene, screen::CairoScreen, poly, rects::Vector{<:Rect2D})
-    model = Mat4f0(I)
+    model = poly.model[]
     projected_rects = project_rect.(Ref(scene), rects, Ref(model))
 
     color = poly.color[]
