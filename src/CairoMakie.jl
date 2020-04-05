@@ -254,7 +254,7 @@ function numbers_to_colors(numbers::AbstractArray{<:Number}, primitive)
 
     AbstractPlotting.interpolated_getindex.(
         Ref(colormap),
-        numbers,
+        Float64.(numbers), # ints don't work in AbstractPlotting
         Ref(colorrange))
 end
 
