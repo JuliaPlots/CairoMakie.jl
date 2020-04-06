@@ -321,8 +321,8 @@ function draw_multi(primitive::Union{Lines, LineSegments}, ctx, positions, color
     end
 
     for i in iterator
-        if isnan(positions[i])
-            Cairo.move_to(ctx, positions[i+1]...)
+        if isnan(positions[i+1]) || isnan(positions[i])
+            # Cairo.move_to(ctx, positions[]...)
             continue
         end
         Cairo.move_to(ctx, positions[i]...)
