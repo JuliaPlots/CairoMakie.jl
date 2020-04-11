@@ -587,7 +587,7 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Text)
         set_font_matrix(ctx, mat)
 
         # TODO this only works in 2d
-        Cairo.rotate(ctx, -2acos(r[4]))
+        Cairo.rotate(ctx, -2acos(-r[4]))
 
         if !(char in ('\r', '\n'))
             Cairo.show_text(ctx, string(char))
