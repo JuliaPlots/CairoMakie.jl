@@ -190,7 +190,7 @@ function draw_plot(scene::Scene, screen::CairoScreen, img::TeXImg)
 
     @show((x0, y0, w, h))
 
-    scale_factor = project_position(scene, widths(bbox), img.model[])
+    scale_factor = project_scale(scene, widths(bbox), img.model[])
 
     @show scale_factor
     Cairo.save(ctx)
