@@ -841,4 +841,5 @@ function activate!(; inline = true, type = "svg")
     return
 end
 
+include("tex.jl")
 end
