@@ -194,8 +194,8 @@ function draw_plot(scene::Scene, screen::CairoScreen, img::TeXImg)
 
     @show scale_factor
     Cairo.save(ctx)
-    Cairo.translate(ctx, pos[1], pos[2] - (h + y0) * scale_factor[1] / w)
-    Cairo.scale(ctx, scale_factor[1] / w, scale_factor[1] / w)
+    Cairo.translate(ctx, pos[1], pos[2] - (h + y0) * scale_factor[2] / h)
+    Cairo.scale(ctx, scale_factor[1] / w, scale_factor[2] / h)
     render_surface(ctx, surf)
     Cairo.restore(ctx)
 end
