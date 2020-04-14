@@ -437,7 +437,7 @@ function draw_marker(ctx, marker::Char, font, pos, scale, strokecolor, strokewid
 
     # this is a countermeasure against Cairo messing with FreeType font pixel sizes
     # when drawing. We reset them every time which is hacky but seems to work
-    AbstractPlotting.FreeTypeAbstraction.FreeType.FT_Set_Pixel_Sizes(font, 64, 64)
+    AbstractPlotting.FreeTypeAbstraction.set_pixelsize(font, 64)
 
     charextent = AbstractPlotting.FreeTypeAbstraction.internal_get_extent(font, marker)
     inkbb = AbstractPlotting.inkboundingbox(charextent)
@@ -460,11 +460,11 @@ function draw_marker(ctx, marker::Char, font, pos, scale, strokecolor, strokewid
     Cairo.stroke(ctx)
 
     # if we use set_ft_font we should destroy the pointer it returns
-    cairo_font_face_destroy(cairoface)
+    # cairo_font_face_destroy(cairoface)
 
     # this is a countermeasure against Cairo messing with FreeType font pixel sizes
     # when drawing. We reset them every time which is hacky but seems to work
-    AbstractPlotting.FreeTypeAbstraction.FreeType.FT_Set_Pixel_Sizes(font, 64, 64)
+    AbstractPlotting.FreeTypeAbstraction.set_pixelsize(font, 64)
 end
 
 
