@@ -598,10 +598,6 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Text)
         cairo_font_face_destroy(cairoface)
 
         Cairo.restore(ctx)
-
-        # this is a countermeasure against Cairo messing with FreeType font pixel sizes
-        # when drawing. We reset them every time which is hacky but seems to work
-        AbstractPlotting.FreeTypeAbstraction.FreeType.FT_Set_Pixel_Sizes(f, 64, 64)
     end
     nothing
 end
