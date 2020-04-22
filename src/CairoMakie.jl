@@ -570,6 +570,8 @@ end
 function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Text)
     ctx = screen.context
     @get_attribute(primitive, (textsize, color, font, align, rotation, model))
+    font = to_font.(font)
+    color = to_color.(color)
     txt = to_value(primitive[1])
     position = primitive.attributes[:position][]
     N = length(txt)
@@ -582,11 +584,14 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Text)
     end
     stridx = 1
     broadcast_foreach(1:N, position, textsize, color, font, rotation) do i, p, ts, cc, f, r
+        AbstractPlotting.FreeTypeAbstraction.set_pixelsize(f, 64)
+        # AbstractPlotting.FreeTypeAbstraction.FreeType.FT_Set_Char_Size(f, 64, 64, 0, 0)
+
         Cairo.save(ctx)
         char = txt[stridx]
 
         stridx = nextind(txt, stridx)
-        rels = to_rel_scale(atlas, char, f, ts)
+
         pos = project_position(scene, p, model)
         scale = project_scale(scene, ts, model)
         Cairo.move_to(ctx, pos[1], pos[2])
@@ -611,7 +616,9 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Text)
 
         # this is a countermeasure against Cairo messing with FreeType font pixel sizes
         # when drawing. We reset them every time which is hacky but seems to work
-        AbstractPlotting.FreeTypeAbstraction.FreeType.FT_Set_Pixel_Sizes(f, 64, 64)
+        # AbstractPlotting.FreeTypeAbstraction.FreeType.FT_Set_Char_Size(f, 64, 64, 0, 0)
+        AbstractPlotting.FreeTypeAbstraction.set_pixelsize(f, 64)
+
     end
     nothing
 end
