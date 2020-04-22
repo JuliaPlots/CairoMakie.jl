@@ -412,7 +412,7 @@ function extract_color(cmap, range, c)
     red(c), green(c), blue(c), alpha(c)
 end
 
-function draw_marker(ctx, marker, pos, scale, strokecolor, strokewidth)
+function draw_marker(ctx, marker, pos, scale, strokecolor, strokewidth, rotation)
     pos += Point2f0(scale[1] / 2, -scale[2] / 2)
     Cairo.arc(ctx, pos[1], pos[2], scale[1] / 2, 0, 2*pi)
     Cairo.fill(ctx)
@@ -424,7 +424,9 @@ function draw_marker(ctx, marker, pos, scale, strokecolor, strokewidth)
     end
 end
 
-function draw_marker(ctx, marker::Char, font, pos, scale, strokecolor, strokewidth)
+function draw_marker(ctx, marker::Char, font, pos, scale, strokecolor, strokewidth, rotation)
+    
+    Cairo.save(ctx)
 
     cairoface = set_ft_font(ctx, font)
 
@@ -442,8 +444,11 @@ function draw_marker(ctx, marker::Char, font, pos, scale, strokecolor, strokewid
     centering_offset = [1, -1] .* (-origin(inkbb_scaled) .- 0.5 .* widths(inkbb_scaled))
     # this is the origin where we actually have to place the glyph so it's centered
     charorigin = pos .+ centering_offset
+    
+    rot = to_rotation(rotation)
 
-    Cairo.move_to(ctx, charorigin...)
+    Cairo.translate(ctx, charorigin...)
+    Cairo.rotate(ctx, -AbstractPlotting.quaternion_to_2d_angle(rot))
     mat = scale_matrix(scale...)
     set_font_matrix(ctx, mat)
     Cairo.text_path(ctx, string(marker))
@@ -458,10 +463,12 @@ function draw_marker(ctx, marker::Char, font, pos, scale, strokecolor, strokewid
     # this is a countermeasure against Cairo messing with FreeType font pixel sizes
     # when drawing. We reset them every time which is hacky but seems to work
     AbstractPlotting.FreeTypeAbstraction.FreeType.FT_Set_Pixel_Sizes(font, 64, 64)
+    
+    Cairo.restore(ctx)
 end
 
 
-function draw_marker(ctx, marker::Union{Rect, Type{<: Rect}}, pos, scale, strokecolor, strokewidth)
+function draw_marker(ctx, marker::Union{Rect, Type{<: Rect}}, pos, scale, strokecolor, strokewidth, rotation)
     s2 = Point2f0(scale[1], -scale[2])
     Cairo.rectangle(ctx, pos..., s2...)
     Cairo.fill(ctx);
@@ -474,7 +481,7 @@ function draw_marker(ctx, marker::Union{Rect, Type{<: Rect}}, pos, scale, stroke
 end
 
 function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Scatter)
-    fields = @get_attribute(primitive, (color, markersize, strokecolor, strokewidth, marker, marker_offset))
+    fields = @get_attribute(primitive, (color, markersize, strokecolor, strokewidth, marker, marker_offset, rotations))
     @get_attribute(primitive, (transform_marker,))
 
     cmap = get(primitive, :colormap, nothing) |> to_value |> to_colormap
@@ -487,7 +494,7 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Scatter)
 
     font = AbstractPlotting.defaultfont()
 
-    broadcast_foreach(primitive[1][], fields...) do point, c, markersize, strokecolor, strokewidth, marker, mo
+    broadcast_foreach(primitive[1][], fields...) do point, c, markersize, strokecolor, strokewidth, marker, mo, rotation
 
         # if we give size in pixels, the size is always equal to that value
         scale = if markersize isa AbstractPlotting.Pixel
@@ -501,9 +508,9 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Scatter)
         Cairo.set_source_rgba(ctx, extract_color(cmap, crange, c)...)
         m = convert_attribute(marker, key"marker"(), key"scatter"())
         if m isa Char
-            draw_marker(ctx, m, font, pos, scale, strokecolor, strokewidth)
+            draw_marker(ctx, m, font, pos, scale, strokecolor, strokewidth, rotation)
         else
-            draw_marker(ctx, m, pos, scale, strokecolor, strokewidth)
+            draw_marker(ctx, m, pos, scale, strokecolor, strokewidth, rotation)
         end
     end
     nothing
