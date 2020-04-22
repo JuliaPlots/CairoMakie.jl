@@ -596,20 +596,61 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Text)
         scale = project_scale(scene, ts, model)
         Cairo.move_to(ctx, pos[1], pos[2])
         Cairo.set_source_rgba(ctx, red(cc), green(cc), blue(cc), alpha(cc))
-        cairoface = set_ft_font(ctx, f)
-
-        @debug pos
-
-        mat = scale_matrix(scale...)
-        set_font_matrix(ctx, mat)
 
         # TODO this only works in 2d
         Cairo.rotate(ctx, -AbstractPlotting.quaternion_to_2d_angle(r))
+
+        mat = scale_matrix(scale...)
+        ctm = Cairo.get_matrix(ctx)
+        options = ccall(
+            (:cairo_font_options_create, LIB_CAIRO),
+            Ptr{Cvoid},
+            (),
+        )
+        cairoface = ccall(
+            (:cairo_ft_font_face_create_for_ft_face, LIB_CAIRO),
+            Ptr{Cvoid}, (AbstractPlotting.FreeTypeAbstraction.FT_Face, Cint),
+            f, 0
+        )
+
+        scaledface = ccall(
+            (:cairo_scaled_font_create, LIB_CAIRO),
+            Ptr{Cvoid},
+            (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}),
+            cairoface, [mat], [ctm], options
+        )
+
+        face = ccall(
+            (:cairo_ft_scaled_font_lock_face, LIB_CAIRO),
+            AbstractPlotting.FreeTypeAbstraction.FreeType.FT_Face,
+            (Ptr{Cvoid},),
+            scaledface
+        )
+
+        ccall(
+            (:cairo_set_scaled_font, LIB_CAIRO),
+            Cvoid,
+            (Ptr{Cvoid}, Ptr{Cvoid}),
+            ctx.ptr, scaledface
+        )
 
         if !(char in ('\r', '\n'))
             Cairo.show_text(ctx, string(char))
         end
 
+        ccall(
+            (:cairo_ft_scaled_font_unlock_face, LIB_CAIRO),
+            Cvoid,
+            (Ptr{Cvoid},),
+            scaledface
+        )
+
+        ccall(
+            (:cairo_font_options_destroy, LIB_CAIRO),
+            Cvoid,
+            (Ptr{Cvoid},),
+            options
+        )
         cairo_font_face_destroy(cairoface)
 
         Cairo.restore(ctx)
