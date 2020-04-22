@@ -63,14 +63,15 @@ function Base.show(io::IO, ::MIME"text/plain", screen::CairoScreen{S}) where S
 end
 
 # Default to Window+Canvas as backing device
-function CairoScreen(scene::Scene)
+function CairoScreen(scene::Scene; antialias = Cairo.ANTIALIAS_BEST)
     w, h = size(scene)
-    surf = CairoARGBSurface(w, h)
+    surf = Cairo.CairoARGBSurface(w, h)
     ctx = CairoContext(surf)
+    Cairo.set_antialias(ctx, antialias)
     CairoScreen(scene, surf, ctx, nothing)
 end
 
-function CairoScreen(scene::Scene, path::Union{String, IO}; mode = :svg)
+function CairoScreen(scene::Scene, path::Union{String, IO}; mode = :svg, antialias = Cairo.ANTIALIAS_BEST)
     w, h = round.(Int, scene.camera.resolution[])
     # TODO: Add other surface types (PDF, etc.)
     if mode == :svg
@@ -83,6 +84,7 @@ function CairoScreen(scene::Scene, path::Union{String, IO}; mode = :svg)
         error("No available Cairo surface for mode $mode")
     end
     ctx = CairoContext(surf)
+    Cairo.set_antialias(ctx, antialias)
     CairoScreen(scene, surf, ctx, nothing)
 end
 
