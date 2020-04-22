@@ -844,7 +844,6 @@ function AbstractPlotting.colorbuffer(screen::CairoScreen)
 
     # x and y are flipped - return the transpose
     return transpose(img)
-
 end
 
 AbstractPlotting.backend_showable(x::CairoBackend, m::MIME"image/svg+xml", scene::Scene) = x.typ == SVG
@@ -885,7 +884,7 @@ end
 function AbstractPlotting.backend_show(x::CairoBackend, io::IO, m::MIME"image/jpeg", scene::Scene)
     screen = nothing
     open(display_path("png"), "w") do fio
-        screen = AbstractPlotting.backend_show(x, fio, MIME"image/png"(), scene)
+        screen = AbstractPlotting.backend_show(x, fio, MIME("image/png"), scene)
     end
     FileIO.save(FileIO.Stream(format"JPEG", io),  FileIO.load(display_path("png")))
     return screen
