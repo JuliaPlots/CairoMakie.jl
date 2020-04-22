@@ -5,12 +5,17 @@ filter!(database) do example
 end
 
 format_save_path = joinpath(@__DIR__, "test_formats")
+available_formats = ("png", "pdf", "jpeg", "svg", "eps")
+
 isdir(format_save_path) && rm(format_save_path, recursive = true)
 mkpath(format_save_path)
-savepath(uid, fmt) = joinpath(format_save_path, "$uid.$fmt")
+
+mkpath.(joinpath.(format_save_path, available_formats))
+
+savepath(uid, fmt) = joinpath(format_save_path, fmt, "$uid.$fmt")
 
 @testset "Saving formats" begin
-    for fmt in ("png", "pdf", "jpeg", "svg")
+    for fmt in available_formats
         for example in database
             @test try
                 save(savepath(example.unique_name, fmt), MakieGallery.eval_example(example))

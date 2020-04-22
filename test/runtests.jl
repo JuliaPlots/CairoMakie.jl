@@ -15,9 +15,6 @@ filter!(database) do entry
     "Hbox" != entry.title &&
     lowercase(entry.title) != "arrows on hemisphere" &&
     lowercase(entry.title) != "cobweb plot" &&
-    lowercase(entry.title) != "streamplot animation" &&
-    !("heatmap" in entry.tags) && # why though, they worked -.-
-    !("image" in entry.tags)
 end
 
 tested_diff_path = joinpath(@__DIR__, "tested_different")
