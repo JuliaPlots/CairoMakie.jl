@@ -10,7 +10,6 @@ using AbstractPlotting: @info, @get_attribute, Combined
 using AbstractPlotting: to_value, to_colormap, extrema_nan
 using Cairo: CairoContext, CairoARGBSurface, CairoSVGSurface, CairoPDFSurface
 
-@enum RenderType SVG PNG PDF EPS
 
 const LIB_CAIRO = if isdefined(Cairo, :libcairo)
     Cairo.libcairo
@@ -18,108 +17,9 @@ else
     Cairo._jl_libcairo
 end
 
-struct CairoBackend <: AbstractPlotting.AbstractBackend
-    typ::RenderType
-    path::String
-end
-
-function to_mime(x::RenderType)
-    x == SVG && return MIME("image/svg+xml")
-    x == PDF && return MIME("application/pdf")
-    x == EPS && return MIME("application/postscript")
-    return MIME("image/png")
-end
-
-to_mime(x::CairoBackend) = to_mime(x.typ)
-
-function CairoBackend(path::String)
-    ext = splitext(path)[2]
-    typ = if ext == ".png"
-        PNG
-    elseif ext == ".svg"
-        SVG
-    elseif ext == ".pdf"
-        PDF
-    elseif ext == ".eps"
-        EPS
-    else
-        error("Unsupported extension: $ext")
-    end
-    CairoBackend(typ, path)
-end
-
-struct CairoScreen{S} <: AbstractPlotting.AbstractScreen
-    scene::Scene
-    surface::S
-    context::CairoContext
-    pane::Nothing # TODO: Union{CairoGtkPane, Void}
-end
-
-# we render the scene directly, since we have no screen dependant state like in e.g. opengl
-Base.insert!(screen::CairoScreen, scene::Scene, plot) = nothing
-
-function Base.show(io::IO, ::MIME"text/plain", screen::CairoScreen{S}) where S
-    println(io, "CairoScreen{$S} with surface:")
-    println(io, screen.surface)
-end
-
-# Default to ARGB Surface as backing device
-# TODO: integrate Gtk into this, so we can have an interactive display
-function CairoScreen(scene::Scene; antialias = Cairo.ANTIALIAS_BEST)
-    w, h = size(scene)
-    surf = Cairo.CairoARGBSurface(w, h)
-    ctx = CairoContext(surf)
-    Cairo.set_antialias(ctx, antialias)
-
-    return CairoScreen(scene, surf, ctx, nothing)
-end
-
-function CairoScreen(scene::Scene, path::Union{String, IO}; mode = :svg, antialias = Cairo.ANTIALIAS_BEST)
-    w, h = round.(Int, scene.camera.resolution[])
-
-    if mode == :svg
-        surf = CairoSVGSurface(path, w, h)
-    elseif mode == :pdf
-        surf = CairoPDFSurface(path, w, h)
-    elseif mode == :eps
-        surf = Cairo.CairoEPSSurface(path, w, h)
-    elseif mode == :png
-        surf = CairoARGBSurface(w, h)
-    else
-        error("No available Cairo surface for mode $mode")
-    end
-
-    ctx = CairoContext(surf)
-    Cairo.set_antialias(ctx, antialias)
-
-    return CairoScreen(scene, surf, ctx, nothing)
-end
-
-function project_position(scene, point, model)
-    res = scene.camera.resolution[]
-    p4d = to_ndim(Vec4f0, to_ndim(Vec3f0, point, 0f0), 1f0)
-    clip = scene.camera.projectionview[] * model * p4d
-    # between -1 and 1
-    p = (clip ./ clip[4])[Vec(1, 2)]
-    # flip y to match cairo
-    p_yflip = Vec2f0(p[1], -p[2])
-    # normalize to between 0 and 1
-    p_0_to_1 = (p_yflip .+ 1f0) / 2f0
-    # multiply with scene resolution for final position
-    result = p_0_to_1 .* res
-end
-
-project_scale(scene::Scene, s::Number, model = Mat4f0(I)) = project_scale(scene, Vec2f0(s), model)
-
-function project_scale(scene::Scene, s, model = Mat4f0(I))
-    p4d = to_ndim(Vec4f0, s, 0f0)
-    p = (scene.camera.projectionview[] * model * p4d)[Vec(1, 2)] ./ 2f0
-    p .* scene.camera.resolution[]
-end
-
-function draw_atomic(::Scene, ::CairoScreen, x)
-    @warn "$(typeof(x)) is not supported by cairo right now"
-end
+include("utils.jl")
+include("infrastructure.jl")
+include("fonts.jl")
 
 struct FaceIterator{Iteration, T, F, ET} <: AbstractVector{ET}
     data::T
@@ -519,34 +419,6 @@ end
 
 scale_matrix(x, y) = Cairo.CairoMatrix(x, 0.0, 0.0, y, 0.0, 0.0)
 
-function set_font_matrix(cr, matrix)
-    ccall((:cairo_set_font_matrix, LIB_CAIRO), Cvoid, (Ptr{Cvoid}, Ptr{Cvoid}), cr.ptr, Ref(matrix))
-end
-
-function set_ft_font(cr, font)
-    font_face = ccall(
-        (:cairo_ft_font_face_create_for_ft_face, LIB_CAIRO),
-        Ptr{Cvoid}, (AbstractPlotting.FreeTypeAbstraction.FT_Face, Cint),
-        font, 0
-    )
-    ccall((:cairo_set_font_face, LIB_CAIRO), Cvoid, (Ptr{Cvoid}, Ptr{Cvoid}), cr.ptr, font_face)
-    font_face
-end
-
-function cairo_font_face_destroy(font_face)
-    ccall(
-        (:cairo_font_face_destroy, LIB_CAIRO),
-        Cvoid, (Ptr{Cvoid},),
-        font_face
-    )
-end
-
-fontname(x::String) = x
-fontname(x::Symbol) = string(x)
-function fontname(x::NativeFont)
-    return x.family_name
-end
-
 function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Text)
     ctx = screen.context
     @get_attribute(primitive, (textsize, color, font, align, rotation, model, justification, lineheight))
@@ -587,36 +459,6 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Text)
         Cairo.restore(ctx)
     end
     nothing
-end
-
-function cairo_clear(screen::CairoScreen)
-    ctx = screen.context
-    w, h = Cairo.width(ctx), Cairo.height(ctx)
-    Cairo.rectangle(ctx, 0, 0, w, h)
-    # FIXME: Cairo.set_source_rgb(ctx, screen.scene.theme[:color]...)
-    Cairo.fill(ctx)
-end
-
-
-function draw_background(screen::CairoScreen, scene::Scene)
-    cr = screen.context
-    Cairo.save(cr)
-    if scene.clear[]
-        bg = to_color(theme(scene, :backgroundcolor)[])
-        Cairo.set_source_rgba(cr, red(bg), green(bg), blue(bg), alpha(bg));
-        r = pixelarea(scene)[]
-        Cairo.rectangle(cr, origin(r)..., widths(r)...) # background
-        fill(cr)
-    end
-    Cairo.restore(cr)
-    foreach(child_scene-> draw_background(screen, child_scene), scene.children)
-end
-
-function draw_plot(scene::Scene, screen::CairoScreen, primitive::Combined)
-    isempty(primitive.plots) && return draw_atomic(scene, screen, primitive)
-    for plot in primitive.plots
-        (to_value(get(primitive, :visible, true)) == true) && draw_plot(scene, screen, plot)
-    end
 end
 
 function rgbatuple(c::Colorant)
@@ -668,12 +510,6 @@ function draw_poly(scene::Scene, screen::CairoScreen, poly, points::Vector{<:Poi
     Cairo.stroke(screen.context)
 end
 
-function project_rect(scene, rect::Rect, model)
-    mini = project_position(scene, minimum(rect), model)
-    maxi = project_position(scene, maximum(rect), model)
-    Rect(mini, maxi .- mini)
-end
-
 function draw_poly(scene::Scene, screen::CairoScreen, poly, rects::Vector{<:Rect2D})
     model = poly.model[]
     projected_rects = project_rect.(Ref(scene), rects, Ref(model))
@@ -699,123 +535,6 @@ end
 
 function draw_poly(scene::Scene, screen::CairoScreen, poly, rect::Rect2D)
     draw_poly(scene, screen, poly, [rect])
-end
-
-function draw_plot(screen::CairoScreen, scene::Scene)
-
-    # get the root area to correct for its pixel size when translating
-    root_area = AbstractPlotting.root(scene).px_area[]
-
-    root_area_height = widths(root_area)[2]
-    scene_area = pixelarea(scene)[]
-    scene_height = widths(scene_area)[2]
-    scene_x_origin, scene_y_origin = scene_area.origin
-
-    Cairo.save(screen.context)
-
-    # we need to translate x by the origin, so distance from the left
-    # but y by the distance from the top, which is not the origin, but can
-    # be calculated using the parent's height, the scene's height and the y origin
-    # this is because y goes downwards in Cairo and upwards in AbstractPlotting
-
-    top_offset = root_area_height - scene_height - scene_y_origin
-    Cairo.translate(screen.context, scene_x_origin, top_offset)
-
-    # clip the scene to its pixelarea
-    Cairo.rectangle(screen.context, 0, 0, widths(scene_area)...)
-    Cairo.clip(screen.context)
-
-    for elem in scene.plots
-        if to_value(get(elem, :visible, true))
-             draw_plot(scene, screen, elem)
-        end
-    end
-    Cairo.restore(screen.context)
-
-    for child in scene.children
-        draw_plot(screen, child)
-    end
-
-    return
-end
-
-
-function cairo_draw(screen::CairoScreen, scene::Scene)
-    AbstractPlotting.update!(scene)
-    draw_background(screen, scene)
-    draw_plot(screen, scene)
-    return
-end
-
-function AbstractPlotting.backend_display(x::CairoBackend, scene::Scene)
-    return open(x.path, "w") do io
-        AbstractPlotting.backend_show(x, io, to_mime(x), scene)
-    end
-end
-
-function AbstractPlotting.colorbuffer(screen::CairoScreen)
-    # extract scene
-    scene = screen.scene
-    # get resolution
-    w, h = size(scene)
-    # preallocate an image matrix
-    img = Matrix{ARGB32}(undef, w, h)
-    # create an image surface to draw onto the image
-    surf = Cairo.CairoImageSurface(img)
-    # draw the scene onto the image matrix
-    ctx = Cairo.CairoContext(surf)
-    scr = CairoScreen(scene, surf, ctx, nothing)
-    cairo_draw(scr, scene)
-
-    # x and y are flipped - return the transpose
-    return transpose(img)
-
-end
-
-AbstractPlotting.backend_showable(x::CairoBackend, ::MIME"image/svg+xml", scene::Scene) = x.typ == SVG
-AbstractPlotting.backend_showable(x::CairoBackend, ::MIME"application/pdf", scene::Scene) = x.typ == PDF
-AbstractPlotting.backend_showable(x::CairoBackend, ::MIME"application/postscript", scene::Scene) = x.typ == EPS
-AbstractPlotting.backend_showable(x::CairoBackend, ::MIME"image/png", scene::Scene) = x.typ == PNG
-
-
-function AbstractPlotting.backend_show(x::CairoBackend, io::IO, ::MIME"image/svg+xml", scene::Scene)
-    screen = CairoScreen(scene, io; mode = :svg)
-    cairo_draw(screen, scene)
-    Cairo.finish(screen.surface)
-    return screen
-end
-
-function AbstractPlotting.backend_show(x::CairoBackend, io::IO, ::MIME"application/pdf", scene::Scene)
-    screen = CairoScreen(scene, io; mode=:pdf)
-    cairo_draw(screen, scene)
-    Cairo.finish(screen.surface)
-    return screen
-end
-
-
-function AbstractPlotting.backend_show(x::CairoBackend, io::IO, ::MIME"application/postscript", scene::Scene)
-    screen = CairoScreen(scene, io; mode=:eps)
-    cairo_draw(screen, scene)
-    Cairo.finish(screen.surface)
-    return screen
-end
-
-function AbstractPlotting.backend_show(x::CairoBackend, io::IO, m::MIME"image/png", scene::Scene)
-    screen = CairoScreen(scene, io; mode = :png)
-    cairo_draw(screen, scene)
-    Cairo.write_to_png(screen.surface, io)
-    return screen
-end
-
-function AbstractPlotting.backend_show(x::CairoBackend, io::IO, m::MIME"image/jpeg", scene::Scene)
-    # TODO: depend on OpenJPEG or JPEGTurbo to do in-memory JPEG conversion
-    # Not sure how much it matters, though, since no one uses JPEG
-    screen = nothing
-    open(display_path("png"), "w") do fio
-        screen = AbstractPlotting.backend_show(x, fio, MIME("image/png"), scene)
-    end
-    FileIO.save(FileIO.Stream(format"JPEG", io),  FileIO.load(display_path("png")))
-    return screen
 end
 
 function __init__()
