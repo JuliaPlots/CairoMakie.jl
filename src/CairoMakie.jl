@@ -355,8 +355,7 @@ function draw_marker(ctx, marker::Char, font, pos, scale, strokecolor, strokewid
     charorigin = pos .+ centering_offset
 
     Cairo.move_to(ctx, charorigin...)
-    mat = scale_matrix(scale...)
-    set_font_matrix(ctx, mat)
+    set_font_matrix(ctx, scale_matrix(scale...))
     Cairo.text_path(ctx, string(marker))
     Cairo.fill_preserve(ctx)
     Cairo.set_line_width(ctx, strokewidth)
@@ -417,8 +416,6 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Scatter)
     nothing
 end
 
-scale_matrix(x, y) = Cairo.CairoMatrix(x, 0.0, 0.0, y, 0.0, 0.0)
-
 function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Text)
     ctx = screen.context
     @get_attribute(primitive, (textsize, color, font, align, rotation, model, justification, lineheight))
@@ -442,10 +439,9 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Text)
         scale = project_scale(scene, ts, model)
         Cairo.move_to(ctx, pos[1], pos[2])
         Cairo.set_source_rgba(ctx, red(cc), green(cc), blue(cc), alpha(cc))
-        cairoface = set_ft_font(ctx, f)
 
-        mat = scale_matrix(scale...)
-        set_font_matrix(ctx, mat)
+        cairoface = set_ft_font(ctx, f)
+        set_font_matrix(ctx, scale_matrix(scale...))
 
         # TODO this only works in 2d
         Cairo.rotate(ctx, -AbstractPlotting.quaternion_to_2d_angle(r))
