@@ -253,8 +253,6 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Scatter)
     fields = @get_attribute(primitive, (color, markersize, strokecolor, strokewidth, marker, marker_offset))
     @get_attribute(primitive, (transform_marker,))
 
-    cmap = get(primitive, :colormap, nothing) |> to_value |> to_colormap
-    crange = get(primitive, :colorrange, nothing) |> to_value
     ctx = screen.context
     model = primitive[:model][]
     positions = primitive[1][]
@@ -263,7 +261,13 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Scatter)
 
     font = AbstractPlotting.defaultfont()
 
-    broadcast_foreach(primitive[1][], fields...) do point, c, markersize, strokecolor, strokewidth, marker, mo
+    colors = if color isa AbstractArray{<: Number}
+        numbers_to_colors(color, primitive)
+    else
+        color
+    end
+
+    broadcast_foreach(primitive[1][], colors, fields...) do point, col, c, markersize, strokecolor, strokewidth, marker, mo
 
         # if we give size in pixels, the size is always equal to that value
         scale = if markersize isa AbstractPlotting.Pixel
@@ -274,7 +278,7 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Scatter)
         end
         pos = project_position(scene, point, model)
 
-        Cairo.set_source_rgba(ctx, extract_color(cmap, crange, c)...)
+        Cairo.set_source_rgba(ctx, rgbatuple(col)...)
         m = convert_attribute(marker, key"marker"(), key"scatter"())
         if m isa Char
             draw_marker(ctx, m, font, pos, scale, strokecolor, strokewidth)
