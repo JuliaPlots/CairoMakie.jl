@@ -10,9 +10,6 @@ database = MakieGallery.load_database()
 
 filter!(database) do entry
     "2d" in entry.tags &&
-    "Text rotation" != entry.title &&
-    "fem polygon 2d" != lowercase(entry.title) &&
-    "Hbox" != entry.title &&
     lowercase(entry.title) != "arrows on hemisphere" &&
     lowercase(entry.title) != "cobweb plot"
 end
