@@ -26,3 +26,5 @@ fontname(x::Symbol) = string(x)
 function fontname(x::NativeFont)
     return x.family_name
 end
+
+scale_matrix(x, y) = Cairo.CairoMatrix(x, 0.0, 0.0, y, 0.0, 0.0)
