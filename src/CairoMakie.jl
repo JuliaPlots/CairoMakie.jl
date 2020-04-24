@@ -4,9 +4,9 @@ using AbstractPlotting, LinearAlgebra
 using Colors, GeometryBasics, FileIO, StaticArrays
 import Cairo
 
-using AbstractPlotting: Scene, Lines, Text, Image, Heatmap, Scatter, @key_str, broadcast_foreach
-using AbstractPlotting: convert_attribute, @extractvalue, LineSegments, to_ndim, NativeFont
-using AbstractPlotting: @info, @get_attribute, Combined
+using AbstractPlotting: Scene, Lines, LineSegments, Text, Image, Heatmap, Scatter, @key_str, broadcast_foreach
+using AbstractPlotting: convert_attribute, to_ndim,
+using AbstractPlotting: @get_attribute, Combined
 using AbstractPlotting: to_value, to_colormap, extrema_nan
 using Cairo: CairoContext, CairoARGBSurface, CairoSVGSurface, CairoPDFSurface
 
