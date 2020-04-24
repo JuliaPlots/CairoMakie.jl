@@ -13,6 +13,7 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::AbstractPlott
     pattern = Cairo.CairoPatternMesh()
 
     cols = per_face_colors(color, colormap, colorrange, vs, fs, uv)
+    @timeit_debug screen.timer "Populating mesh patches" begin
     for (f, (c1, c2, c3)) in zip(fs, cols)
         t1, t2, t3 =  project_position.(scene, vs[f], (model,)) #triangle points
         Cairo.mesh_pattern_begin_patch(pattern)
@@ -27,9 +28,12 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::AbstractPlott
 
         Cairo.mesh_pattern_end_patch(pattern)
     end
-    Cairo.set_source(ctx, pattern)
-    Cairo.close_path(ctx)
-    Cairo.paint(ctx)
+    end
+    @timeit_debug screen.timer "Painting mesh" begin
+        Cairo.set_source(ctx, pattern)
+        Cairo.close_path(ctx)
+        Cairo.paint(ctx)
+    end
     return nothing
 end
 
@@ -76,14 +80,18 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Union{Lines, 
 
         # we can hide the gaps by setting the line cap to round
         Cairo.set_line_cap(ctx, Cairo.CAIRO_LINE_CAP_ROUND)
-        draw_multi(primitive, ctx, projected_positions, color, linewidth)
+        @timeit_debug screen.timer "Lines multi drawing" begin
+            draw_multi(primitive, ctx, projected_positions, color, linewidth)
+        end
     else
         # stroke the whole line at once if it has only one color
         # this allows correct linestyles and line joins as well and will be the
         # most common case
         Cairo.set_line_width(ctx, linewidth)
         Cairo.set_source_rgba(ctx, rgbatuple(color)...)
-        draw_single(primitive, ctx, projected_positions)
+        @timeit_debug screen.timer "Lines single drawing" begin
+            draw_single(primitive, ctx, projected_positions)
+        end
     end
     nothing
 end

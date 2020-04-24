@@ -69,7 +69,7 @@ function CairoScreen(scene::Scene; antialias = Cairo.ANTIALIAS_BEST)
     ctx = CairoContext(surf)
     Cairo.set_antialias(ctx, antialias)
 
-    return CairoScreen(scene, surf, ctx, nothing, TimerOutput(; label = "png"))
+    return CairoScreen(scene, surf, ctx, nothing, TimerOutput("png"))
 end
 
 """
@@ -98,7 +98,7 @@ function CairoScreen(scene::Scene, path::Union{String, IO}; mode = :svg, antiali
     ctx = CairoContext(surf)
     Cairo.set_antialias(ctx, antialias)
 
-    return CairoScreen(scene, surf, ctx, nothing, TimerOutput(; label = string(mode)))
+    return CairoScreen(scene, surf, ctx, nothing, TimerOutput(string(mode)))
 end
 
 
@@ -188,9 +188,17 @@ function draw_background(screen::CairoScreen, scene::Scene)
 end
 
 function draw_plot(scene::Scene, screen::CairoScreen, primitive::Combined)
-    isempty(primitive.plots) && return draw_atomic(scene, screen, primitive)
-    for plot in primitive.plots
-        (to_value(get(primitive, :visible, true)) == true) && draw_plot(scene, screen, plot)
+
+    @timeit_debug screen.timer "$(string(typeof(primitive)))" begin
+        if isempty(primitive.plots)
+            draw_atomic(scene, screen, primitive)
+        else
+            for plot in primitive.plots
+                if to_value(get(primitive, :visible, true)) == true
+                    draw_plot(scene, screen, plot)
+                end
+            end
+        end
     end
 end
 
@@ -218,14 +226,18 @@ AbstractPlotting.backend_showable(x::CairoBackend, ::MIME"image/png", scene::Sce
 function AbstractPlotting.backend_show(x::CairoBackend, io::IO, ::MIME"image/svg+xml", scene::Scene)
     screen = CairoScreen(scene, io; mode = :svg)
     cairo_draw(screen, scene)
-    Cairo.finish(screen.surface)
+    @timeit screen.timer "Finishing" begin
+        Cairo.finish(screen.surface)
+    end
     return screen
 end
 
 function AbstractPlotting.backend_show(x::CairoBackend, io::IO, ::MIME"application/pdf", scene::Scene)
     screen = CairoScreen(scene, io; mode=:pdf)
     cairo_draw(screen, scene)
-    Cairo.finish(screen.surface)
+    @timeit screen.timer "Finishing" begin
+        Cairo.finish(screen.surface)
+    end
     return screen
 end
 
@@ -233,14 +245,18 @@ end
 function AbstractPlotting.backend_show(x::CairoBackend, io::IO, ::MIME"application/postscript", scene::Scene)
     screen = CairoScreen(scene, io; mode=:eps)
     cairo_draw(screen, scene)
-    Cairo.finish(screen.surface)
+    @timeit screen.timer "Finishing" begin
+        Cairo.finish(screen.surface)
+    end
     return screen
 end
 
 function AbstractPlotting.backend_show(x::CairoBackend, io::IO, m::MIME"image/png", scene::Scene)
-    screen = CairoScreen(scene, io; mode = :png)
+    screen = CairoScreen(scene)
     cairo_draw(screen, scene)
-    Cairo.write_to_png(screen.surface, io)
+    @timeit screen.timer "Finishing" begin
+        Cairo.write_to_png(screen.surface, io)
+    end
     return screen
 end
 
@@ -260,18 +276,20 @@ end
 ########################################
 
 function AbstractPlotting.colorbuffer(screen::CairoScreen)
-    # extract scene
-    scene = screen.scene
-    # get resolution
-    w, h = size(scene)
-    # preallocate an image matrix
-    img = Matrix{ARGB32}(undef, w, h)
-    # create an image surface to draw onto the image
-    surf = Cairo.CairoImageSurface(img)
-    # draw the scene onto the image matrix
-    ctx = Cairo.CairoContext(surf)
-    scr = CairoScreen(scene, surf, ctx, nothing)
-    cairo_draw(scr, scene)
+    @timeit_debug screen.timer "Colorbuffer" begin
+        # extract scene
+        scene = screen.scene
+        # get resolution
+        w, h = size(scene)
+        # preallocate an image matrix
+        img = Matrix{ARGB32}(undef, w, h)
+        # create an image surface to draw onto the image
+        surf = Cairo.CairoImageSurface(img)
+        # draw the scene onto the image matrix
+        ctx = Cairo.CairoContext(surf)
+        scr = CairoScreen(scene, surf, ctx, nothing)
+        cairo_draw(scr, scene)
+    end
 
     # x and y are flipped - return the transpose
     return transpose(img)
