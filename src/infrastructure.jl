@@ -97,6 +97,14 @@ function CairoScreen(scene::Scene, path::Union{String, IO}; mode = :svg, antiali
     return CairoScreen(scene, surf, ctx, nothing)
 end
 
+
+function Base.delete!(screen::CairoScreen, scene::Scene, plot::AbstractPlot)
+    # Currently, we rerender every time, so nothing needs
+    # to happen here.  However, in the event that changes,
+    # e.g. if we integrate a Gtk window, we may need to
+    # do something here.
+end
+
 "Convert a rendering type to a MIME type"
 function to_mime(x::RenderType)
     x == SVG && return MIME("image/svg+xml")
