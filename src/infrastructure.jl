@@ -25,6 +25,7 @@ struct CairoScreen{S} <: AbstractPlotting.AbstractScreen
     surface::S
     context::CairoContext
     pane::Nothing # TODO: Union{CairoGtkPane, Void}
+    timer::TimerOutput
 end
 
 
@@ -44,13 +45,16 @@ function CairoBackend(path::String)
     CairoBackend(typ, path)
 end
 
-# we render the scene directly, since we have no screen dependant state like in e.g. opengl
+# we render the scene directly, since we have
+# no screen dependent state like in e.g. opengl
 Base.insert!(screen::CairoScreen, scene::Scene, plot) = nothing
 
 function Base.show(io::IO, ::MIME"text/plain", screen::CairoScreen{S}) where S
     println(io, "CairoScreen{$S} with surface:")
     println(io, screen.surface)
 end
+
+CairoScreen(scene, surf, ctx, pane) = CairoScreen(scene, surf, ctx, pane, TimerOutput())
 
 # Default to ARGB Surface as backing device
 # TODO: integrate Gtk into this, so we can have an interactive display
@@ -65,7 +69,7 @@ function CairoScreen(scene::Scene; antialias = Cairo.ANTIALIAS_BEST)
     ctx = CairoContext(surf)
     Cairo.set_antialias(ctx, antialias)
 
-    return CairoScreen(scene, surf, ctx, nothing)
+    return CairoScreen(scene, surf, ctx, nothing, TimerOutput(; label = "png"))
 end
 
 """
@@ -94,7 +98,7 @@ function CairoScreen(scene::Scene, path::Union{String, IO}; mode = :svg, antiali
     ctx = CairoContext(surf)
     Cairo.set_antialias(ctx, antialias)
 
-    return CairoScreen(scene, surf, ctx, nothing)
+    return CairoScreen(scene, surf, ctx, nothing, TimerOutput(; label = string(mode)))
 end
 
 

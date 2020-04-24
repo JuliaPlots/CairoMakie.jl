@@ -1,7 +1,7 @@
 module CairoMakie
 
 using AbstractPlotting, LinearAlgebra
-using Colors, GeometryBasics, FileIO, StaticArrays
+using Colors, GeometryBasics, FileIO, StaticArrays, TimerOutputs
 import Cairo
 
 using AbstractPlotting: Scene, Lines, LineSegments, Text, Image, Heatmap, Scatter, @key_str, broadcast_foreach, NativeFont

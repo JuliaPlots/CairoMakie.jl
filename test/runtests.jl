@@ -2,7 +2,10 @@ using ImageMagick, Test
 using CairoMakie, AbstractPlotting, MakieGallery
 CairoMakie.activate!(type = "png")
 
-# AbstractPlotting.format2mime(::Type{AbstractPlotting.FileIO.format"PDF"}) = MIME("application/pdf")
+slow_examples = Set((
+    "orbit diagram",
+    "lots of heatmaps",
+))
 
 include("saving.jl") # test saving params
 
@@ -15,9 +18,9 @@ filter!(database) do entry
     !(lowercase(entry.title) ∈ (
         "arrows on hemisphere",
         "cobweb plot",
-        "edit polygon",  # pick not implemented yet
-        "orbit diagram", # really slow
-    ))
+        "edit polygon",    # pick not implemented yet
+    )) &&
+    !(lowercase(entry.title) in slow_examples)
 end
 
 tested_diff_path = joinpath(@__DIR__, "tested_different")
