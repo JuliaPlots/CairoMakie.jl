@@ -287,7 +287,7 @@ function AbstractPlotting.colorbuffer(screen::CairoScreen)
         surf = Cairo.CairoImageSurface(img)
         # draw the scene onto the image matrix
         ctx = Cairo.CairoContext(surf)
-        scr = CairoScreen(scene, surf, ctx, nothing)
+        scr = CairoScreen(scene, surf, ctx, nothing, screen.timer)
         cairo_draw(scr, scene)
     end
 
