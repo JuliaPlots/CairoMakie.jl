@@ -296,7 +296,7 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Text)
     position = primitive.attributes[:position][]
     N = length(txt)
     atlas = AbstractPlotting.get_texture_atlas()
-    if position isa StaticArrays.StaticArray # one position to place text
+    if position isa Union{StaticArrays.StaticArray, NTuple{2, Real}, NTuple{3, Real}, Point} # one position to place text
         position = AbstractPlotting.layout_text(
             txt, position, textsize,
             font, align, rotation, model, justification, lineheight
