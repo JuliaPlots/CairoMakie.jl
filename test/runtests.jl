@@ -12,12 +12,12 @@ filter!(database) do entry
     "2d" in entry.tags &&
     !("3d" in entry.tags) &&
     lowercase(entry.title) != "arrows on hemisphere" &&
-    lowercase(entry.title) !in (
+    !(lowercase(entry.title) ∈ (
         "arrows on hemisphere",
         "cobweb plot",
         "edit polygon",  # pick not implemented yet
         "orbit diagram", # really slow
-    )
+    ))
 end
 
 tested_diff_path = joinpath(@__DIR__, "tested_different")
