@@ -22,6 +22,12 @@ include("infrastructure.jl")
 include("fonts.jl")
 include("primitives.jl")
 
+const OneOrVec{T} = Union{
+    T,
+    AbstractVector{T},
+    NTuple{N, T} where N
+}
+
 function __init__()
     activate!()
     AbstractPlotting.register_backend!(AbstractPlotting.current_backend[])

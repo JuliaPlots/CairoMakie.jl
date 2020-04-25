@@ -254,7 +254,7 @@ end
 function AbstractPlotting.backend_show(x::CairoBackend, io::IO, m::MIME"image/png", scene::Scene)
     screen = CairoScreen(scene)
     cairo_draw(screen, scene)
-    @timeit screen.timer "Finishing" begin
+    @timeit screen.timer "Writing to PNG" begin
         Cairo.write_to_png(screen.surface, io)
     end
     return screen
