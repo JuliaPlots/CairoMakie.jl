@@ -204,7 +204,7 @@ function draw_image(scene, screen, attributes)
     Cairo.restore(ctx)
 end
 
-function draw_marker(ctx, marker, pos, scale, strokecolor, strokewidth)
+function draw_marker(ctx, marker, pos, scale, strokecolor, strokewidth, marker_offset, rotation)
     pos += Point2f0(scale[1] / 2, -scale[2] / 2)
     Cairo.arc(ctx, pos[1], pos[2], scale[1] / 2, 0, 2*pi)
     Cairo.fill(ctx)
@@ -216,7 +216,7 @@ function draw_marker(ctx, marker, pos, scale, strokecolor, strokewidth)
     end
 end
 
-function draw_marker(ctx, marker::Char, font, pos, scale, strokecolor, strokewidth)
+function draw_marker(ctx, marker::Char, font, pos, scale, strokecolor, strokewidth, marker_offset, rotation)
 
     cairoface = set_ft_font(ctx, font)
 
@@ -245,9 +245,11 @@ function draw_marker(ctx, marker::Char, font, pos, scale, strokecolor, strokewid
 end
 
 
-function draw_marker(ctx, marker::Union{Rect, Type{<: Rect}}, pos, scale, strokecolor, strokewidth)
+function draw_marker(ctx, marker::Union{Rect, Type{<: Rect}}, pos, scale, strokecolor, strokewidth, marker_offset, rotation)
     s2 = Point2f0(scale[1], -scale[2])
-    Cairo.rectangle(ctx, pos..., s2...)
+    Cairo.move_to(ctx, pos...)
+    Cairo.rotate(ctx, -AbstractPlotting.quaternion_to_2d_angle(rotation))
+    Cairo.rectangle(ctx, 0, 0, s2...)
     Cairo.fill(ctx);
     if strokewidth > 0.0
         sc = to_color(strokecolor)
@@ -258,7 +260,7 @@ function draw_marker(ctx, marker::Union{Rect, Type{<: Rect}}, pos, scale, stroke
 end
 
 function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Scatter)
-    fields = @get_attribute(primitive, (color, markersize, strokecolor, strokewidth, marker, marker_offset))
+    fields = @get_attribute(primitive, (color, markersize, strokecolor, strokewidth, marker, marker_offset, rotations))
     @get_attribute(primitive, (transform_marker,))
 
     ctx = screen.context
@@ -275,7 +277,7 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Scatter)
         color
     end
 
-    broadcast_foreach(primitive[1][], colors, fields...) do point, col, c, markersize, strokecolor, strokewidth, marker, mo
+    broadcast_foreach(primitive[1][], colors, fields...) do point, col, c, markersize, strokecolor, strokewidth, marker, mo, rotation
 
         # if we give size in pixels, the size is always equal to that value
         scale = if markersize isa AbstractPlotting.Pixel
@@ -284,14 +286,20 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Scatter)
             # otherwise calculate a scaled size
             project_scale(scene, markersize, size_model)
         end
+
+        offset = if mo isa OneOrVec{AbstractPlotting.Pixel}
+            Vec2f0(mo.value)
+        else
+            project_scale(scene, mo, model)
+        end
         pos = project_position(scene, point, model)
 
         Cairo.set_source_rgba(ctx, rgbatuple(col)...)
         m = convert_attribute(marker, key"marker"(), key"scatter"())
         if m isa Char
-            draw_marker(ctx, m, font, pos, scale, strokecolor, strokewidth)
+            draw_marker(ctx, m, best_font(m, font), pos, scale, strokecolor, strokewidth, mo, rotation)
         else
-            draw_marker(ctx, m, pos, scale, strokecolor, strokewidth)
+            draw_marker(ctx, m, pos, scale, strokecolor, strokewidth, mo, rotation)
         end
     end
     nothing
@@ -377,6 +385,7 @@ function draw_poly(scene::Scene, screen::CairoScreen, poly, points::Vector{<:Poi
     Cairo.close_path(screen.context)
     Cairo.set_source_rgba(screen.context, rgbatuple(poly.color[])...)
     Cairo.fill_preserve(screen.context)
+
     Cairo.set_source_rgba(screen.context, rgbatuple(poly.strokecolor[])...)
     Cairo.set_line_width(screen.context, poly.strokewidth[])
     Cairo.stroke(screen.context)
