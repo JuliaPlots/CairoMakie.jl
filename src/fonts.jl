@@ -35,9 +35,9 @@ Finds a font that can represent the unicode character!
 Returns AbstractPlotting.defaultfont() if not representable!
 """
 function best_font(c::Char, font = AbstractPlotting.defaultfont())
-    if FreeType.FT_Get_Char_Index(font, c) == 0
+    if AbstractPlotting.FreeType.FT_Get_Char_Index(font, c) == 0
         for afont in AbstractPlotting.alternativefonts()
-            if FreeType.FT_Get_Char_Index(afont, c) != 0
+            if AbstractPlotting.FreeType.FT_Get_Char_Index(afont, c) != 0
                 return afont
             end
         end
