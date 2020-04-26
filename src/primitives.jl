@@ -218,7 +218,7 @@ function draw_marker(ctx, marker, pos, scale, strokecolor, strokewidth, marker_o
 
     sc = to_color(strokecolor)
     if strokewidth > 0.0
-        Cairo.set_source_rgba(ctx, red(sc), green(sc), blue(sc), alpha(sc))
+        Cairo.set_source_rgba(ctx, rgbatuple(sc)...)
         Cairo.set_line_width(ctx, Float64(strokewidth))
         Cairo.stroke(ctx)
     end
@@ -269,7 +269,7 @@ function draw_marker(ctx, marker::Union{Rect, Type{<: Rect}}, pos, scale, stroke
     Cairo.move_to(ctx, pos...)
     Cairo.rotate(ctx, -AbstractPlotting.quaternion_to_2d_angle(rotation))
     Cairo.rectangle(ctx, 0, 0, s2...)
-    Cairo.fill(ctx);
+    Cairo.fill_preserve(ctx);
     if strokewidth > 0.0
         sc = to_color(strokecolor)
         Cairo.set_source_rgba(ctx, red(sc), green(sc), blue(sc), alpha(sc))
