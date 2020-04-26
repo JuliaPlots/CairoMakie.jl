@@ -300,14 +300,14 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Scatter)
 
         # if we give size in pixels, the size is always equal to that value
         scale = if markersize isa AbstractPlotting.Pixel
-            Vec2(markersize.value)
+            Vec2f0(markersize.value)
         else
             # otherwise calculate a scaled size
             project_scale(scene, markersize, size_model)
         end
 
         offset = if mo isa OneOrVec{<: AbstractPlotting.Pixel}
-            Vec2(getproperty.(mo, :value))
+            Vec2f0(getproperty.(mo, :value))
         else
             project_scale(scene, mo, size_model)
         end
