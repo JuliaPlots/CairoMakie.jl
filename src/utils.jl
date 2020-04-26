@@ -144,3 +144,31 @@ end
 
 mesh_pattern_set_corner_color(pattern, id, c) =
     Cairo.mesh_pattern_set_corner_color_rgba(pattern, id, rgbatuple(c)...)
+
+################################################################################
+#                            Tagging infrastructure                            #
+################################################################################
+
+function begin_tag(ctx, tagname::String, metadata::String)
+    ccall(
+        (:cairo_tag_begin, LIB_CAIRO),
+        Cvoid,
+        (Ptr{Cairo.CairoContext}, Ptr{Cchar}, Ptr{Cchar}),
+        ctx.ptr, tagname, metadata
+    )
+end
+
+function end_tag(ctx, tagname::String)
+    ccall(
+        (:cairo_tag_end, LIB_CAIRO),
+        Cvoid,
+        (Ptr{Cairo.CairoContext}, Ptr{Cchar}),
+        ctx.ptr, tagname
+    )
+end
+
+function with_tag(f::Function, ctx::Cairo.CairoContext, tagname::String, metadata::String = "")
+    begin_tag(ctx, tagname, metadata)
+    f()
+    end_tag(ctx, tagname)
+end
