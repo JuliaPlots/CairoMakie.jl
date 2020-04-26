@@ -337,7 +337,12 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Text)
         Cairo.rotate(ctx, -AbstractPlotting.quaternion_to_2d_angle(r))
 
         if !(char in ('\r', '\n'))
-            Cairo.show_text(ctx, string(char))
+            if should_render_text(screen.surface)
+                Cairo.show_text(ctx, string(char))
+            else
+                Cairo.text_path(ctx, string(char))
+                Cairo.fill_preserve(ctx)
+            end
         end
 
         cairo_font_face_destroy(cairoface)

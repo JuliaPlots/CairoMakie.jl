@@ -47,5 +47,5 @@ Returns `true` if you should use real text rendering,
 and `false` if you should use text paths.
 """
 function should_render_text(surf)
-    return should_render_text(ccall((:cairo_surface_get_type, CairoMakie.LIB_CAIRO), Cint, (Ptr{Cvoid},), screen.surface.ptr))
+    return should_render_text(ccall((:cairo_surface_get_type, CairoMakie.LIB_CAIRO), Cint, (Ptr{Cvoid},), surf.ptr))
 end
