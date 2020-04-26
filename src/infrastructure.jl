@@ -24,7 +24,7 @@ struct CairoScreen{S} <: AbstractPlotting.AbstractScreen
     scene::Scene
     surface::S
     context::CairoContext
-    pane::Nothing # TODO: Union{CairoGtkPane, Void}
+    pane # we don't type this, so that it can store, e.g., a Gtk window
     timer::TimerOutput
 end
 
@@ -206,6 +206,14 @@ function draw_atomic(::Scene, ::CairoScreen, x)
     @warn "$(typeof(x)) is not supported by cairo right now"
 end
 
+function clear(screen::CairoScreen)
+    ctx = screen.ctx
+    Cairo.save(ctx)
+    Cairo.set_operator(ctx, Cairo.OPERATOR_SOURCE)
+    Cairo.set_source_rgba(ctx, rgbatuple(screen.scene[:backgroundcolor])...);
+    Cairo.paint(ctx)
+    Cairo.restore(ctx)
+end
 #########################################
 # Backend interface to AbstractPlotting #
 #########################################
@@ -262,7 +270,7 @@ end
 
 function AbstractPlotting.backend_show(x::CairoBackend, io::IO, m::MIME"image/jpeg", scene::Scene)
     # TODO: depend on OpenJPEG or JPEGTurbo to do in-memory JPEG conversion
-    # Not sure how much it matters, though, since no one uses JPEG
+    # Not sure how much it matters, though, since no one should use JPEG
     screen = nothing
     open(display_path("png"), "w") do fio
         screen = AbstractPlotting.backend_show(x, fio, MIME("image/png"), scene)
