@@ -7,12 +7,14 @@ function project_position(scene, point, model)
     res = scene.camera.resolution[]
     p4d = to_ndim(Vec4f0, to_ndim(Vec3f0, point, 0f0), 1f0)
     clip = scene.camera.projectionview[] * model * p4d
+    @inbounds begin
     # between -1 and 1
-    p = (clip ./ clip[4])[Vec(1, 2)]
-    # flip y to match cairo
-    p_yflip = Vec2f0(p[1], -p[2])
-    # normalize to between 0 and 1
-    p_0_to_1 = (p_yflip .+ 1f0) / 2f0
+        p = (clip ./ clip[4])[Vec(1, 2)]
+        # flip y to match cairo
+        p_yflip = Vec2f0(p[1], -p[2])
+        # normalize to between 0 and 1
+        p_0_to_1 = (p_yflip .+ 1f0) / 2f0
+    end
     # multiply with scene resolution for final position
     return p_0_to_1 .* res
 end
@@ -21,7 +23,7 @@ project_scale(scene::Scene, s::Number, model = Mat4f0(I)) = project_scale(scene,
 
 function project_scale(scene::Scene, s, model = Mat4f0(I))
     p4d = to_ndim(Vec4f0, s, 0f0)
-    p = (scene.camera.projectionview[] * model * p4d)[Vec(1, 2)] ./ 2f0
+    p = @inbounds (scene.camera.projectionview[] * model * p4d)[Vec(1, 2)] ./ 2f0
     return p .* scene.camera.resolution[]
 end
 
@@ -65,7 +67,7 @@ to_uint32_color(c) = reinterpret(UInt32, convert(ARGB32, c))
 ########################################
 
 function to_cairo_image(img::Matrix{UInt32}, attributes)
-    CairoARGBSurface(
+    @inbounds CairoARGBSurface(
         [
             img[j, i]
             for i in size(img, 2):-1:1, # account for Y-axis discrepancy in Cairo
@@ -75,7 +77,7 @@ function to_cairo_image(img::Matrix{UInt32}, attributes)
 end
 
 function to_cairo_image(img, attributes)
-    to_cairo_image(to_uint32_color.(img), attributes)
+    @inbounds to_cairo_image(to_uint32_color.(img), attributes)
 end
 
 

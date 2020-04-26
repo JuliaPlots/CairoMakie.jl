@@ -8,7 +8,8 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::AbstractPlott
     ctx = screen.context
     model = primitive.model[]
     mesh = primitive[1][]
-    vs = coordinates(mesh); fs = faces(mesh)
+    vs = coordinates(mesh)
+    fs = faces(mesh)
     uv = hasproperty(mesh, :uv) ? mesh.uv : nothing
     pattern = Cairo.CairoPatternMesh()
 
