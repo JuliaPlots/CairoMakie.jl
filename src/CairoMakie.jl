@@ -17,6 +17,7 @@ else
     Cairo._jl_libcairo
 end
 
+include("constants.jl")
 include("utils.jl")
 include("infrastructure.jl")
 include("fonts.jl")
