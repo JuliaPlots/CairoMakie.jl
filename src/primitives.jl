@@ -206,9 +206,16 @@ function draw_image(scene, screen, attributes)
 end
 
 function draw_marker(ctx, marker, pos, scale, strokecolor, strokewidth, marker_offset, rotation)
-    pos += Point2f0(scale[1] / 2, -scale[2] / 2)
-    Cairo.arc(ctx, pos[1], pos[2], scale[1] / 2, 0, 2*pi)
+
+    marker_offset = marker_offset + scale ./ 2
+
+    pos += Point2f0(marker_offset[1], -marker_offset[2])
+
+    # Cairo.scale(ctx, scale...)
+    Cairo.arc(ctx, pos[1], pos[2], scale[1]/2, 0, 2*pi)
     Cairo.fill(ctx)
+
+
     sc = to_color(strokecolor)
     if strokewidth > 0.0
         Cairo.set_source_rgba(ctx, red(sc), green(sc), blue(sc), alpha(sc))
@@ -218,6 +225,8 @@ function draw_marker(ctx, marker, pos, scale, strokecolor, strokewidth, marker_o
 end
 
 function draw_marker(ctx, marker::Char, font, pos, scale, strokecolor, strokewidth, marker_offset, rotation)
+
+    marker_offset = marker_offset + scale ./ 2
 
     cairoface = set_ft_font(ctx, font)
 
@@ -230,7 +239,7 @@ function draw_marker(ctx, marker::Char, font, pos, scale, strokecolor, strokewid
     # flip y for the centering shift of the character because in Cairo y goes down
     centering_offset = [1, -1] .* (-origin(inkbb_scaled) .- 0.5 .* widths(inkbb_scaled))
     # this is the origin where we actually have to place the glyph so it's centered
-    charorigin = pos .+ centering_offset
+    charorigin = pos .+ centering_offset .+ Vec2f0(marker_offset[1], -marker_offset[2])
 
     Cairo.move_to(ctx, charorigin...)
     set_font_matrix(ctx, scale_matrix(scale...))
@@ -247,7 +256,16 @@ end
 
 
 function draw_marker(ctx, marker::Union{Rect, Type{<: Rect}}, pos, scale, strokecolor, strokewidth, marker_offset, rotation)
-    s2 = Point2f0(scale[1], -scale[2])
+    s2 = if marker isa Type{Rect}
+        Point2(scale[1], -scale[2])
+    else
+        Point2(widths(marker)...)
+    end
+
+    offset = marker_offset .+ scale ./ 2
+
+    pos += Point2f0(offset[1], -offset[2])
+
     Cairo.move_to(ctx, pos...)
     Cairo.rotate(ctx, -AbstractPlotting.quaternion_to_2d_angle(rotation))
     Cairo.rectangle(ctx, 0, 0, s2...)
@@ -282,25 +300,25 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Scatter)
 
         # if we give size in pixels, the size is always equal to that value
         scale = if markersize isa AbstractPlotting.Pixel
-            [markersize.value, markersize.value]
+            Vec2(markersize.value)
         else
             # otherwise calculate a scaled size
             project_scale(scene, markersize, size_model)
         end
 
-        offset = if mo isa OneOrVec{AbstractPlotting.Pixel}
-            Vec2f0(mo.value)
+        offset = if mo isa OneOrVec{<: AbstractPlotting.Pixel}
+            Vec2(getproperty.(mo, :value))
         else
-            project_scale(scene, mo, model)
+            project_scale(scene, mo, size_model)
         end
         pos = project_position(scene, point, model)
 
         Cairo.set_source_rgba(ctx, rgbatuple(col)...)
         m = convert_attribute(marker, key"marker"(), key"scatter"())
         if m isa Char
-            draw_marker(ctx, m, best_font(m, font), pos, scale, strokecolor, strokewidth, mo, rotation)
+            draw_marker(ctx, m, best_font(m, font), pos, scale, strokecolor, strokewidth, offset, rotation)
         else
-            draw_marker(ctx, m, pos, scale, strokecolor, strokewidth, mo, rotation)
+            draw_marker(ctx, m, pos, scale, strokecolor, strokewidth, offset, rotation)
         end
     end
     nothing
@@ -341,7 +359,7 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Text)
                 Cairo.show_text(ctx, string(char))
             else
                 Cairo.text_path(ctx, string(char))
-                Cairo.fill_preserve(ctx)
+                Cairo.fill(ctx)
             end
         end
 
