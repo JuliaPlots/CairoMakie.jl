@@ -90,7 +90,7 @@ for i in 1:10
 end
 
 
-screen = GtkScreen(scenes[5])
+screen = GtkScreen(scene)
 
 AbstractPlotting.colorbuffer(screen)
 
@@ -98,4 +98,4 @@ screen.timer
 
 @benchmark AbstractPlotting.colorbuffer(screen)
 
-@benchmark AbstractPlotting.colorbuffer(CairoMakie.CairoScreen(scenes[5]))
+@benchmark AbstractPlotting.colorbuffer(CairoMakie.CairoScreen(scene))
