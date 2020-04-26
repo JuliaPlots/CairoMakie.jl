@@ -167,6 +167,19 @@ function end_tag(ctx, tagname::String)
     )
 end
 
+"""
+The attributes string is of the form "key1=value2 key2=value2 ...". Values may be boolean (true/false or 1/0), integer, float, string, or an array.
+
+String values are enclosed in single quotes ('). Single quotes and backslashes inside the string should be escaped with a backslash.
+
+Boolean values may be set to true by only specifying the key. eg the attribute string "key" is the equivalent to "key=true".
+
+Arrays are enclosed in '[]'. eg "rect=[1.2 4.3 2.0 3.0]".
+
+If no attributes are required, attributes can be an empty string or NULL.
+
+See Tags and Links Description for the list of tags and attributes.
+"""
 function with_tag(f::Function, ctx::Cairo.CairoContext, tagname::String, metadata::String = "")
     begin_tag(ctx, tagname, metadata)
     f()
