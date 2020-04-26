@@ -234,7 +234,7 @@ AbstractPlotting.backend_showable(x::CairoBackend, ::MIME"image/png", scene::Sce
 function AbstractPlotting.backend_show(x::CairoBackend, io::IO, ::MIME"image/svg+xml", scene::Scene)
     screen = CairoScreen(scene, io; mode = :svg)
     cairo_draw(screen, scene)
-    @timeit screen.timer "Finishing" begin
+    @timeit_debug screen.timer "Finishing" begin
         Cairo.finish(screen.surface)
     end
     return screen
@@ -243,7 +243,7 @@ end
 function AbstractPlotting.backend_show(x::CairoBackend, io::IO, ::MIME"application/pdf", scene::Scene)
     screen = CairoScreen(scene, io; mode=:pdf)
     cairo_draw(screen, scene)
-    @timeit screen.timer "Finishing" begin
+    @timeit_debug screen.timer "Finishing" begin
         Cairo.finish(screen.surface)
     end
     return screen
@@ -253,7 +253,7 @@ end
 function AbstractPlotting.backend_show(x::CairoBackend, io::IO, ::MIME"application/postscript", scene::Scene)
     screen = CairoScreen(scene, io; mode=:eps)
     cairo_draw(screen, scene)
-    @timeit screen.timer "Finishing" begin
+    @timeit_debug screen.timer "Finishing" begin
         Cairo.finish(screen.surface)
     end
     return screen
@@ -262,7 +262,7 @@ end
 function AbstractPlotting.backend_show(x::CairoBackend, io::IO, m::MIME"image/png", scene::Scene)
     screen = CairoScreen(scene)
     cairo_draw(screen, scene)
-    @timeit screen.timer "Writing to PNG" begin
+    @timeit_debug screen.timer "Writing to PNG" begin
         Cairo.write_to_png(screen.surface, io)
     end
     return screen
