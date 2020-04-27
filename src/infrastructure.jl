@@ -24,7 +24,6 @@ struct CairoScreen{S} <: AbstractPlotting.AbstractScreen
     scene::Scene
     surface::S
     context::CairoContext
-    pane # we don't type this, so that it can store, e.g., a Gtk window
     timer::TimerOutput
 end
 
@@ -54,7 +53,7 @@ function Base.show(io::IO, ::MIME"text/plain", screen::CairoScreen{S}) where S
     println(io, screen.surface)
 end
 
-CairoScreen(scene, surf, ctx, pane) = CairoScreen(scene, surf, ctx, pane, TimerOutput())
+CairoScreen(scene, surf, ctx) = CairoScreen(scene, surf, ctx, TimerOutput())
 
 # Default to ARGB Surface as backing device
 # TODO: integrate Gtk into this, so we can have an interactive display
@@ -69,7 +68,7 @@ function CairoScreen(scene::Scene; antialias = Cairo.ANTIALIAS_BEST)
     ctx = CairoContext(surf)
     Cairo.set_antialias(ctx, antialias)
 
-    return CairoScreen(scene, surf, ctx, nothing, TimerOutput("png"))
+    return CairoScreen(scene, surf, ctx, TimerOutput("png"))
 end
 
 """
@@ -98,7 +97,7 @@ function CairoScreen(scene::Scene, path::Union{String, IO}; mode = :svg, antiali
     ctx = CairoContext(surf)
     Cairo.set_antialias(ctx, antialias)
 
-    return CairoScreen(scene, surf, ctx, nothing, TimerOutput(string(mode)))
+    return CairoScreen(scene, surf, ctx, TimerOutput(string(mode)))
 end
 
 
@@ -295,7 +294,7 @@ function AbstractPlotting.colorbuffer(screen::CairoScreen)
         surf = Cairo.CairoImageSurface(img)
         # draw the scene onto the image matrix
         ctx = Cairo.CairoContext(surf)
-        scr = CairoScreen(scene, surf, ctx, nothing, screen.timer)
+        scr = CairoScreen(scene, surf, ctx, screen.timer)
         cairo_draw(scr, scene)
     end
 
