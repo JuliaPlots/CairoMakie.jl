@@ -226,7 +226,9 @@ end
 
 function draw_marker(ctx, marker::Char, font, pos, scale, strokecolor, strokewidth, marker_offset, rotation)
 
-    marker_offset = marker_offset + scale ./ 2
+    Cairo.save(ctx)
+
+    marker_offset = marker_offset .+ scale ./ 2
 
     cairoface = set_ft_font(ctx, font)
 
@@ -239,18 +241,22 @@ function draw_marker(ctx, marker::Char, font, pos, scale, strokecolor, strokewid
     # flip y for the centering shift of the character because in Cairo y goes down
     centering_offset = [1, -1] .* (-origin(inkbb_scaled) .- 0.5 .* widths(inkbb_scaled))
     # this is the origin where we actually have to place the glyph so it's centered
-    charorigin = pos .+ centering_offset .+ Vec2f0(marker_offset[1], -marker_offset[2])
+    charorigin = pos .+ centering_offset + Vec2f0(marker_offset[1], -marker_offset[2])
 
     Cairo.move_to(ctx, charorigin...)
     set_font_matrix(ctx, scale_matrix(scale...))
+    Cairo.rotate(ctx, to_2d_rotation(rotation))
     Cairo.text_path(ctx, string(marker))
     Cairo.fill_preserve(ctx)
+    # stroke
     Cairo.set_line_width(ctx, strokewidth)
     Cairo.set_source_rgba(ctx, rgbatuple(strokecolor)...)
     Cairo.stroke(ctx)
 
     # if we use set_ft_font we should destroy the pointer it returns
     cairo_font_face_destroy(cairoface)
+
+    Cairo.restore(ctx)
 
 end
 
@@ -267,7 +273,7 @@ function draw_marker(ctx, marker::Union{Rect, Type{<: Rect}}, pos, scale, stroke
     pos += Point2f0(offset[1], -offset[2])
 
     Cairo.move_to(ctx, pos...)
-    Cairo.rotate(ctx, -AbstractPlotting.quaternion_to_2d_angle(rotation))
+    Cairo.rotate(ctx, to_2d_rotation(rotation))
     Cairo.rectangle(ctx, 0, 0, s2...)
     Cairo.fill_preserve(ctx);
     if strokewidth > 0.0
@@ -352,7 +358,7 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Text)
         set_font_matrix(ctx, scale_matrix(scale...))
 
         # TODO this only works in 2d
-        Cairo.rotate(ctx, -AbstractPlotting.quaternion_to_2d_angle(r))
+        Cairo.rotate(ctx, to_2d_rotation(r))
 
         if !(char in ('\r', '\n'))
             if should_render_text(screen.surface)
