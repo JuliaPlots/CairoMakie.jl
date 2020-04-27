@@ -43,7 +43,7 @@ end
 
 to_2d_rotation(quat::AbstractPlotting.Quaternion) = -AbstractPlotting.quaternion_to_2d_angle(quat)
 
-to_2d_rotation(vec::Vec2f0) = atan(vec[2], vec[1])
+to_2d_rotation(vec::Vec2f0) = (atan(-vec[2], vec[1]))
 
 to_2d_rotation(n::Real) = n
 

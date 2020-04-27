@@ -245,6 +245,8 @@ function draw_marker(ctx, marker::Char, font, pos, scale, strokecolor, strokewid
 
     Cairo.move_to(ctx, charorigin...)
     set_font_matrix(ctx, scale_matrix(scale...))
+    @show rotation
+    @show to_2d_rotation(rotation)
     Cairo.rotate(ctx, to_2d_rotation(rotation))
     Cairo.text_path(ctx, string(marker))
     Cairo.fill_preserve(ctx)
@@ -301,8 +303,9 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Scatter)
     else
         color
     end
+    @show rotations
 
-    broadcast_foreach(primitive[1][], colors, fields...) do point, col, c, markersize, strokecolor, strokewidth, marker, mo, rotation
+    broadcast_foreach(primitive[1][], colors, fields..., primitive.rotations[]) do point, col, c, markersize, strokecolor, strokewidth, marker, mo, _, rotation
 
         # if we give size in pixels, the size is always equal to that value
         scale = if markersize isa AbstractPlotting.Pixel
@@ -321,6 +324,7 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Scatter)
 
         Cairo.set_source_rgba(ctx, rgbatuple(col)...)
         m = convert_attribute(marker, key"marker"(), key"scatter"())
+        @show rotation
         if m isa Char
             draw_marker(ctx, m, best_font(m, font), pos, scale, strokecolor, strokewidth, offset, rotation)
         else
