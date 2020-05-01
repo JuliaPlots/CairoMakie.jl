@@ -245,8 +245,7 @@ function draw_marker(ctx, marker::Char, font, pos, scale, strokecolor, strokewid
     # bottom left corner.
     Cairo.translate(ctx, centering_offset...)
 
-    glyph = CairoGlyph(marker, font)
-    glyph_path(ctx, [glyph])
+    glyph_path(ctx, [CairoGlyph(marker, font)])
     Cairo.fill_preserve(ctx)
     # stroke
     Cairo.set_line_width(ctx, strokewidth)
@@ -283,7 +282,6 @@ function draw_marker(ctx, marker::Union{Rect, Type{<: Rect}}, pos, scale, stroke
         Cairo.stroke(ctx)
     end
 end
-
 
 ################################################################################
 #                                     Text                                     #
@@ -322,8 +320,7 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Text)
         Cairo.rotate(ctx, to_2d_rotation(r))
 
         if !(char in ('\r', '\n'))
-            glyph = CairoGlyph(char, f)
-            show_glyphs(ctx, [glyph])
+            show_glyphs(ctx, [CairoGlyph(char, f)])
             # Cairo.show_text(ctx, string(char))
         end
 
