@@ -54,7 +54,12 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Union{Lines, 
 
         # we can hide the gaps by setting the line cap to round
         Cairo.set_line_cap(ctx, Cairo.CAIRO_LINE_CAP_ROUND)
-        draw_multi(primitive, ctx, projected_positions, color, linewidth, diff(Float64.(linestyle)))
+        draw_multi(
+            primitive, ctx,
+            projected_positions,
+            color, linewidth,
+            isnothing(linestyle) ? nothing : diff(Float64.(linestyle))
+        )
     else
         # stroke the whole line at once if it has only one color
         # this allows correct linestyles and line joins as well and will be the
@@ -94,12 +99,12 @@ end
 
 # if linewidth is not an array
 function draw_multi(primitive, ctx, positions, colors::AbstractArray, linewidth, dash)
-    draw_multi(primitive, ctx, positions, colors, [linewidth for c in colors])
+    draw_multi(primitive, ctx, positions, colors, [linewidth for c in colors], dash)
 end
 
 # if color is not an array
 function draw_multi(primitive, ctx, positions, color, linewidths::AbstractArray, dash)
-    draw_multi(primitive, ctx, positions, [color for l in linewidths], linewidths)
+    draw_multi(primitive, ctx, positions, [color for l in linewidths], linewidths, dash)
 end
 
 function draw_multi(primitive::Union{Lines, LineSegments}, ctx, positions, colors::AbstractArray, linewidths::AbstractArray, dash)
@@ -126,7 +131,7 @@ function draw_multi(primitive::Union{Lines, LineSegments}, ctx, positions, color
             error("Cairo doesn't support two different line widths ($(linewidths[i]) and $(linewidths[i+1])) at the endpoints of a line.")
         end
         Cairo.set_line_width(ctx, linewidths[i])
-        Cairo.set_dash(ctx, dash .* linewidths[i])
+        !isnothing(dash) && Cairo.set_dash(ctx, dash .* linewidths[i])
         c1 = colors[i]
         c2 = colors[i+1]
         # we can avoid the more expensive gradient if the colors are the same
