@@ -90,18 +90,21 @@ end
 ########################################
 #     Image/heatmap -> ARGBSurface     #
 ########################################
-
-function to_cairo_image(img::AbstractMatrix{<: AbstractFloat}, attributes)
+function to_color_matrix(img::AbstractMatrix{<: AbstractFloat}, attributes)
     AbstractPlotting.@get_attribute attributes (colormap, colorrange)
-    imui32 = to_uint32_color.(AbstractPlotting.interpolated_getindex.(Ref(colormap), img, (colorrange,)))
-    to_cairo_image(imui32, attributes)
+    AbstractPlotting.interpolated_getindex.(Ref(colormap), img, (colorrange,))
 end
 
-function to_cairo_image(img::AbstractMatrix{<: Colorant}, attributes)
-    to_cairo_image(to_uint32_color.(img), attributes)
+function to_color_matrix(img::AbstractMatrix{<: Colorant}, attributes)
+    img
 end
 
-function to_cairo_image(img::Matrix{UInt32}, attributes)
+function to_cairo_image(img::AbstractMatrix, attributes)
+    imui32 = to_uint32_color.(to_color_matrix(img, attributes))
+    to_cairo_image(imui32)
+end
+
+function to_cairo_image(img::Matrix{UInt32})
     # In Cairo, the y-axis is expected to go from the top
     # to the bottom of the image, whereas in Makie we
     # expect it to go from the bottom to the top.

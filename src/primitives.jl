@@ -333,7 +333,6 @@ end
 ################################################################################
 #                                Heatmap, Image                                #
 ################################################################################
-
 function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Union{Heatmap, Image})
     ctx = screen.context
     image = primitive[3][]
@@ -345,19 +344,53 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Union{Heatmap
     xy = min.(xy_, xymax_)
     xymax = max.(xy_, xymax_)
     w, h = xymax .- xy
-    interp = to_value(get(primitive, :interpolate, true))
+    interpolate = to_value(get(primitive, :interpolate, true))
     # TODO: use Gaussian blurring
-    interp = interp ? Cairo.FILTER_BEST : Cairo.FILTER_NEAREST
-    s = to_cairo_image(image, primitive)
-    Cairo.rectangle(ctx, xy..., w, h)
+
     Cairo.save(ctx)
-    Cairo.translate(ctx, xy[1], xy[2])
-    Cairo.scale(ctx, w / s.width, h / s.height)
-    Cairo.set_source_surface(ctx, s, 0, 0)
-    p = Cairo.get_source(ctx)
-    # Set filter doesn't work!?
-    Cairo.pattern_set_filter(p, interp)
-    Cairo.fill(ctx)
+
+    if interpolate
+        s = to_cairo_image(image, primitive)
+        Cairo.rectangle(ctx, xy..., w, h)
+
+        Cairo.translate(ctx, xy[1], xy[2])
+        Cairo.scale(ctx, w / s.width, h / s.height)
+        Cairo.set_source_surface(ctx, s, 0, 0)
+        p = Cairo.get_source(ctx)
+        # Set filter doesn't work!?
+        Cairo.pattern_set_filter(p, Cairo.FILTER_BEST)
+        Cairo.fill(ctx)
+    else
+        colormatrix = to_color_matrix(image, primitive)
+        ni, nj = size(image)
+        dw, dh = (w, h) ./ (ni, nj)
+
+        pattern = Cairo.CairoPatternMesh()
+        for i in 0:ni-1, j in 0:nj-1
+            pixelpos = xy .+ (w, h) .* (i / ni, j / nj)
+
+            color = rgbatuple(colormatrix[i+1, j+1])
+
+            Cairo.mesh_pattern_begin_patch(pattern)
+
+            Cairo.mesh_pattern_move_to(pattern, pixelpos...)
+            Cairo.mesh_pattern_line_to(pattern, (pixelpos .+ Point(dw, 0))...)
+            Cairo.mesh_pattern_line_to(pattern, (pixelpos .+ Point(dw, dh))...)
+            Cairo.mesh_pattern_line_to(pattern, (pixelpos .+ Point(0, dh))...)
+
+            Cairo.mesh_pattern_set_corner_color_rgba(pattern, 0, color...)
+            Cairo.mesh_pattern_set_corner_color_rgba(pattern, 1, color...)
+            Cairo.mesh_pattern_set_corner_color_rgba(pattern, 2, color...)
+            Cairo.mesh_pattern_set_corner_color_rgba(pattern, 3, color...)
+
+            Cairo.mesh_pattern_end_patch(pattern)
+        end
+
+        Cairo.rectangle(ctx, xy..., w, h)
+        Cairo.set_source(ctx, pattern)
+        Cairo.paint(ctx)
+    end
+    
     Cairo.restore(ctx)
 end
 
