@@ -36,8 +36,16 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Union{Lines, 
     # color is now a color or an array of colors
     # if it's an array of colors, each segment must be stroked separately
 
-    # linestyle can be set globally
-    !isnothing(linestyle) && Cairo.set_dash(ctx, linestyle)
+    # The linestyle can be set globally, as we do here.
+    # However, there is a discrepancy between AbstractPlotting
+    # and Cairo when it comes to linestyles.
+    # For AbstractPlotting, the linestyle array is cumulative, 
+    # and defines the "absolute" endpoints of segments.
+    # However, for Cairo, each value provides the length of 
+    # alternate "on" and "off" portions of the stroke.
+    # Therefore, we take the diff of the given linestyle,
+    # to convert the "absolute" coordinates into "relative" ones.
+    !isnothing(linestyle) && Cairo.set_dash(ctx, diff(linestyle))
 
     if color isa AbstractArray || linewidth isa AbstractArray
         # stroke each segment separately, this means disjointed segments with probably
