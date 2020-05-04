@@ -387,7 +387,7 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Union{Heatmap
     Cairo.restore(ctx)
 end
 
-a
+
 ################################################################################
 #                                     Mesh                                     #
 ################################################################################
