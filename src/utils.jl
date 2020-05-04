@@ -91,6 +91,15 @@ end
 #     Image/heatmap -> ARGBSurface     #
 ########################################
 
+"Linearly resamples an image up by `factor`."
+function resample(image::AbstractMatrix, factor::Int)
+    resized = similar(image, size(image) .* factor)
+    for i in axes(resized, 1), j in axes(resized, 2)
+        resized[i, j] = image[round(Int, i/factor, RoundUp), round(Int, j/factor, RoundUp)]
+    end
+    return resized
+end
+
 function to_cairo_image(img::AbstractMatrix{<: AbstractFloat}, attributes)
     AbstractPlotting.@get_attribute attributes (colormap, colorrange)
     imui32 = to_uint32_color.(AbstractPlotting.interpolated_getindex.(Ref(colormap), img, (colorrange,)))

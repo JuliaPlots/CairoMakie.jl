@@ -362,20 +362,32 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Union{Heatmap
     w, h = xymax .- xy
     interp = to_value(get(primitive, :interpolate, true))
     # TODO: use Gaussian blurring
-    interp = interp ? Cairo.FILTER_BEST : Cairo.FILTER_NEAREST
+    filt = interp ? Cairo.FILTER_BEST : Cairo.FILTER_NEAREST
+    if !(interp)
+        up_factor = 20000 ÷ prod(size(image))
+        resampling_factor = round(Int, clamp(up_factor, 5, Inf), RoundUp)
+        image = resample(
+            image,
+            resampling_factor
+        )
+    end
+
     s = to_cairo_image(image, primitive)
+
     Cairo.rectangle(ctx, xy..., w, h)
+
     Cairo.save(ctx)
     Cairo.translate(ctx, xy[1], xy[2])
     Cairo.scale(ctx, w / s.width, h / s.height)
     Cairo.set_source_surface(ctx, s, 0, 0)
     p = Cairo.get_source(ctx)
     # Set filter doesn't work!?
-    Cairo.pattern_set_filter(p, interp)
+    Cairo.pattern_set_filter(p, filt)
     Cairo.fill(ctx)
     Cairo.restore(ctx)
 end
 
+a
 ################################################################################
 #                                     Mesh                                     #
 ################################################################################
