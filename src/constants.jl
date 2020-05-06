@@ -38,14 +38,16 @@ const VECTOR_BACKEND_TYPES = Set((
 ))
 
 
-function should_render_text(i::Int32)
+function is_vector_surface(i::Int32)
     return CAIRO_SURFACE_MAP[i+1] ∈ VECTOR_BACKEND_TYPES
 end
 
 """
-Returns `true` if you should use real text rendering,
-and `false` if you should use text paths.
+    is_vector_surface(surf)
+
+Returns true if the surface is a "vector surface", as defined by `VECTOR_BACKEND_TYPES`,
+and false otherwise.
 """
-function should_render_text(surf)
+function is_vector_surface(surf)
     return should_render_text(ccall((:cairo_surface_get_type, CairoMakie.LIB_CAIRO), Cint, (Ptr{Cvoid},), surf.ptr))
 end
