@@ -8,6 +8,7 @@ using AbstractPlotting: Scene, Lines, Text, Image, Heatmap, Scatter, @key_str, b
 using AbstractPlotting: convert_attribute, @extractvalue, LineSegments, to_ndim, NativeFont
 using AbstractPlotting: @info, @get_attribute, Combined
 using AbstractPlotting: to_value, to_colormap, extrema_nan
+using AbstractPlotting: transformation, apply_transform
 
 const LIB_CAIRO = if isdefined(Cairo, :libcairo)
     Cairo.libcairo

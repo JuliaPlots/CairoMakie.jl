@@ -7,7 +7,7 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Union{Lines, 
     linestyle = AbstractPlotting.convert_attribute(linestyle, AbstractPlotting.key"linestyle"())
     ctx = screen.context
     model = primitive[:model][]
-    positions = primitive[1][]
+    positions = apply_transform(AbstractPlotting.transformation(primitive).transform_func[], primitive[1][])
 
     isempty(positions) && return
 
@@ -160,7 +160,8 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Scatter)
 
     ctx = screen.context
     model = primitive[:model][]
-    positions = primitive[1][]
+    positions = apply_transform(transformation(primitive).transform_func[], primitive[1][])
+
     isempty(positions) && return
     size_model = transform_marker ? model : Mat4f0(I)
 
@@ -172,7 +173,7 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Scatter)
         color
     end
 
-    broadcast_foreach(primitive[1][], colors, markersize, strokecolor, strokewidth, marker, marker_offset, primitive.rotations[]) do point, col, markersize, strokecolor, strokewidth, marker, mo, rotation
+    broadcast_foreach(positions, colors, markersize, strokecolor, strokewidth, marker, marker_offset, primitive.rotations[]) do point, col, markersize, strokecolor, strokewidth, marker, mo, rotation
 
         # if we give size in pixels, the size is always equal to that value
         scale = if markersize isa OneOrVec{<: AbstractPlotting.Pixel}
@@ -316,6 +317,9 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Text)
             font, align, rotation, model, justification, lineheight
         )
     end
+
+    position = apply_transform.(Ref(transformation(primitive).transform_func[]), position)
+
     stridx = 1
     broadcast_foreach(1:N, position, textsize, color, font, rotation) do i, p, ts, cc, f, r
         Cairo.save(ctx)
@@ -365,7 +369,7 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Union{Heatmap
     filt = interp ? Cairo.FILTER_BEST : Cairo.FILTER_NEAREST
     if !(interp)
         up_factor = 20000 ÷ prod(size(image))
-        resampling_factor = round(Int, clamp(up_factor, 5, Inf), RoundUp)
+        resampling_factor = round(Int, clamp(up_factor, 2, Inf), RoundUp)
         image = resample(
             image,
             resampling_factor
@@ -401,8 +405,10 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::AbstractPlott
     ctx = screen.context
     model = primitive.model[]
     mesh = primitive[1][]
-    vs = coordinates(mesh); fs = faces(mesh)
+    vs = apply_transform(transformation(primitive).transform_func[], coordinates(mesh))
+    fs = faces(mesh)
     uv = hasproperty(mesh, :uv) ? mesh.uv : nothing
+
     pattern = Cairo.CairoPatternMesh()
 
     cols = per_face_colors(color, colormap, colorrange, vs, fs, uv)
