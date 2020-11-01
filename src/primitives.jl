@@ -271,7 +271,7 @@ function draw_marker(ctx, marker::Char, font, pos, scale, strokecolor, strokewid
 
     # if we use set_ft_font we should destroy the pointer it returns
     cairo_font_face_destroy(cairoface)
-    
+
     set_font_matrix(ctx, old_matrix)
     Cairo.restore(ctx)
 
@@ -345,7 +345,7 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Text)
             w, h = scene.camera.resolution[]
             j = SOneTo(3)
             cpv = 0.005(w + h) * transpose(inv(
-                (scene.camera.projectionview[][j,j] * 
+                (scene.camera.projectionview[][j,j] *
                 AbstractPlotting.rotationmatrix4(r)[j,j])[Vec(1,2), Vec(1,2)]
             ))
             mat = Cairo.CairoMatrix(
@@ -372,6 +372,31 @@ end
 #                                Heatmap, Image                                #
 ################################################################################
 
+# Related to issue 675 (irregularly-spaced grids), to deal with egdes, taken from Plots.jl
+function heatmap_edges(v::AbstractVector{T}, isedges::Bool = false) where {T}
+    length(v) == 1 && return v[1] .+ one(T)/2 * [-1, 1]
+    if isedges return v end
+    # `isedges = true` means that v is a vector which already describes edges
+    # and does not need to be extended.
+    vmin, vmax = extrema(v) # note: in Plots.jl this was `ignorenan_extrema`
+    extra_min = (v[2] - v[1]) / 2
+    extra_max = (v[end] - v[end - 1]) / 2
+    vcat(vmin-extra_min, (v[1:end-1] + v[2:end]) / 2, vmax+extra_max)
+end
+function heatmap_edges(x::AbstractVector, y::AbstractVector, z_size::Tuple{Int, Int})
+    nx, ny = length(x), length(y)
+    ismidpoints = z_size == (ny, nx)
+    isedges = z_size == (ny - 1, nx - 1)
+    if !ismidpoints && !isedges
+        error("""Length of x & y does not match the size of z.
+                Must be either `size(z) == (length(y), length(x))` (x & y define midpoints)
+                or `size(z) == (length(y)+1, length(x)+1))` (x & y define edges).""")
+    end
+    x, y = heatmap_edges(x, isedges),
+           heatmap_edges(y, isedges)
+    return x, y
+end
+
 function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Union{Heatmap, Image})
     ctx = screen.context
     image = primitive[3][]
@@ -391,10 +416,24 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Union{Heatmap
     # theoretically, we could restrict the non-interpolation vector graphics hack to actual vector
     # graphics backends, but it's not directly visible from screen.surface what type we have
 
+    # Makie issue #675: allow for irregularly-spaced rectilinear grids
+    # Positions in data units (ex, ey) and normalized to screen units (xpos, ypos)
+    ey, ex = heatmap_edges(y, x, size(image))
+    xmin, xmax = extrema(ex)
+    ymin, ymax = extrema(ey)
+    Δx = xmax - xmin
+    Δy = ymax - ymin
+    xpos = xy[1] .+ (ex .- xmin) * w / Δx
+    ypos = xy[2] .+ (ey .- ymin) * h / Δy
+    # Widths in data units (δx, δy) and screen units (δxpos, δypos)
+    δx, δy = diff(ex), diff(ey)
+    δxpos = δx * w / Δx
+    δypos = δy * h / Δy
+
     if interp
         # FILTER_BEST doesn't work reliably with png backend, GAUSSIAN is not implemented
         interp_flag = Cairo.FILTER_BILINEAR
-        
+
         s = to_cairo_image(image, primitive)
         Cairo.rectangle(ctx, xy..., w, h)
         Cairo.save(ctx)
@@ -410,13 +449,8 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Union{Heatmap
     else
         colors = to_rgba_image(image, primitive)
 
-        cellw = w / size(image, 1)
-        cellh = h / size(image, 2)
-
         ni, nj = size(image)
         @inbounds for i in 1:ni, j in 1:nj
-            ori = xy + Point2f0((i-1) * cellw, (j-1) * cellh)
-
             # there are usually white lines between directly adjacent rectangles
             # in vector graphics because of anti-aliasing
 
@@ -440,7 +474,7 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Union{Heatmap
             end
 
             # we add the bulge in the direction of cellw / cellh in case the axes are reversed
-            Cairo.rectangle(ctx, ori..., cellw + sign(cellw) * xbulge, cellh + sign(cellh) * ybulge)
+            Cairo.rectangle(ctx, xpos[i], ypos[j], δxpos[i] + sign(δxpos[i]) * xbulge, δypos[j] + sign(δypos[j]) * ybulge)
             Cairo.set_source_rgba(ctx, rgbatuple(colors[i, j])...)
             Cairo.fill(ctx)
         end
@@ -507,7 +541,7 @@ function draw_mesh3D(
         scene, screen, primitive;
         mesh = primitive[1][], pos = Vec4f0(0), scale = 1f0
     )
-    @get_attribute(primitive, (color, shading, lightposition, ambient, diffuse, 
+    @get_attribute(primitive, (color, shading, lightposition, ambient, diffuse,
         specular, shininess, faceculling))
 
     colormap = get(primitive, :colormap, nothing) |> to_value |> to_colormap
@@ -520,12 +554,12 @@ function draw_mesh3D(
     view = scene.camera.view[]
     projection = scene.camera.projection[]
     normalmatrix = get(
-        scene.attributes, :normalmatrix, let 
+        scene.attributes, :normalmatrix, let
             i = SOneTo(3)
             transpose(inv(view[i, i] * model[i, i]))
         end
     )
-    
+
     # Mesh data
     # transform to view/camera space
     vs = map(coordinates(mesh)) do v
@@ -533,7 +567,7 @@ function draw_mesh3D(
         view * (model * p4d .+ to_ndim(Vec4f0, pos, 0f0))
     end
     fs = faces(mesh)
-    uv = hasproperty(mesh, :uv) ? mesh.uv : nothing  
+    uv = hasproperty(mesh, :uv) ? mesh.uv : nothing
     ns = map(n -> normalmatrix * n, normals(mesh))
     cols = per_face_colors(color, colormap, colorrange, matcap, vs, fs, ns, uv)
 
@@ -545,7 +579,7 @@ function draw_mesh3D(
 
     # Camera to screen space
     ts = map(vs) do v
-        clip = projection * v 
+        clip = projection * v
         @inbounds begin
             p = (clip ./ clip[4])[Vec(1, 2)]
             p_yflip = Vec2f0(p[1], -p[2])
@@ -554,10 +588,10 @@ function draw_mesh3D(
         p = p_0_to_1 .* scene.camera.resolution[]
         Vec3f0(p[1], p[2], clip[3])
     end
-    
+
     # Approximate zorder
     zorder = sortperm(fs, by = f -> average_z(ts, f))
-    
+
     # Face culling
     zorder = filter(i -> any(last.(ns[fs[i]]) .> faceculling), zorder)
 
@@ -626,7 +660,7 @@ function surface2mesh(xs::Vector, ys::Vector, zs::Matrix)
     ps = [Point3f0(xs[i], ys[j], zs[i, j]) for j in eachindex(ys) for i in eachindex(xs)]
     idxs = LinearIndices(size(zs))
     faces = [
-        QuadFace(idxs[i, j], idxs[i+1, j], idxs[i+1, j+1], idxs[i, j+1]) 
+        QuadFace(idxs[i, j], idxs[i+1, j], idxs[i+1, j+1], idxs[i, j+1])
         for j in 1:size(zs, 2)-1 for i in 1:size(zs, 1)-1
     ]
     normal_mesh(ps, faces)
@@ -635,12 +669,12 @@ function surface2mesh(xs::Matrix, ys::Matrix, zs::Matrix)
     ps = [Point3f0(xs[i, j], ys[i, j], zs[i, j]) for j in 1:size(zs, 2) for i in 1:size(zs, 1)]
     idxs = LinearIndices(size(zs))
     faces = [
-        QuadFace(idxs[i, j], idxs[i+1, j], idxs[i+1, j+1], idxs[i, j+1]) 
+        QuadFace(idxs[i, j], idxs[i+1, j], idxs[i+1, j+1], idxs[i, j+1])
         for j in 1:size(zs, 2)-1 for i in 1:size(zs, 1)-1
     ]
     normal_mesh(ps, faces)
 end
-    
+
 
 ################################################################################
 #                                 MeshScatter                                  #
@@ -682,7 +716,7 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::AbstractPlott
         scale = scales isa Vector ? scales[i] : scales
 
         draw_mesh3D(
-            scene, screen, primitive, 
+            scene, screen, primitive,
             mesh = m, pos = p, scale = scale
         )
     end
