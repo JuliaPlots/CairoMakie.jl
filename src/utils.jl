@@ -5,7 +5,7 @@
 function project_position(scene, point, model)
 
     # use transform func
-    point = AbstractPlotting.apply_transform_func(scene.transformation.transform_func[], point)
+    point = AbstractPlotting.apply_transform(scene.transformation.transform_func[], point)
 
     res = scene.camera.resolution[]
     p4d = to_ndim(Vec4f0, to_ndim(Vec3f0, point, 0f0), 1f0)
