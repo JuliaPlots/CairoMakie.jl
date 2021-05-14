@@ -207,14 +207,55 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Scatter)
         isnan(pos) && return
 
         Cairo.set_source_rgba(ctx, rgbatuple(col)...)
-        m = convert_attribute(marker, key"marker"(), key"scatter"())
-        if m isa Char
-            draw_marker(ctx, m, best_font(m, font), pos, scale, strokecolor, strokewidth, offset, rotation)
+
+        if marker isa AbstractPlotting.BezierPath
+            draw_marker(ctx, marker, pos, scale, strokecolor, strokewidth, offset, rotation)
         else
-            draw_marker(ctx, m, pos, scale, strokecolor, strokewidth, offset, rotation)
+            m = convert_attribute(marker, key"marker"(), key"scatter"())
+            if m isa Char
+                draw_marker(ctx, m, best_font(m, font), pos, scale, strokecolor, strokewidth, offset, rotation)
+            else
+                draw_marker(ctx, m, pos, scale, strokecolor, strokewidth, offset, rotation)
+            end
         end
     end
     nothing
+end
+
+function draw_marker(ctx, beziermarker::AbstractPlotting.BezierPath, pos, scale, strokecolor, strokewidth, marker_offset, rotation)
+    Cairo.save(ctx)
+
+    Cairo.translate(ctx, pos[1], pos[2])
+
+    # Cairo.rotate(ctx, to_2d_rotation(rotation))
+
+    Cairo.rotate(ctx, to_2d_rotation(rotation))
+    Cairo.scale(ctx, scale[1], -scale[2]) # flip y for cairo
+
+    draw_path(ctx, beziermarker)
+
+    Cairo.fill_preserve(ctx)
+
+    sc = to_color(strokecolor)
+
+    Cairo.set_source_rgba(ctx, rgbatuple(sc)...)
+    Cairo.set_line_width(ctx, Float64(strokewidth))
+    Cairo.stroke(ctx)
+
+    Cairo.restore(ctx)
+end
+
+draw_path(ctx, bp::AbstractPlotting.BezierPath) = foreach(x -> path_command(ctx, x), bp.commands)
+path_command(ctx, c::AbstractPlotting.MoveTo) = Cairo.move_to(ctx, c.p...)
+path_command(ctx, c::AbstractPlotting.LineTo) = Cairo.line_to(ctx, c.p...)
+path_command(ctx, c::AbstractPlotting.CurveTo) = Cairo.curve_to(ctx, c.c1..., c.c2..., c.p...)
+path_command(ctx, ::AbstractPlotting.ClosePath) = Cairo.close_path(ctx)
+function path_command(ctx, c::AbstractPlotting.EllipticalArc)
+    Cairo.save(ctx)
+    Cairo.rotate(ctx, c.angle)
+    Cairo.scale(ctx, 1, c.r2 / c.r1)
+    Cairo.arc(ctx, c.c..., c.r1, c.a1, c.a2)
+    Cairo.restore(ctx)
 end
 
 
