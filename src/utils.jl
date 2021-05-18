@@ -56,7 +56,13 @@ function to_2d_rotation(x)
     return -Makie.quaternion_to_2d_angle(quat)
 end
 
-to_2d_rotation(::Makie.Billboard) = 0
+function to_2d_rotation(::Makie.Billboard)
+    @warn "This should not be reachable!"
+    0
+end
+
+remove_billboard(x) = x
+remove_billboard(b::Makie.Billboard) = b.rotation
 
 to_2d_rotation(quat::Makie.Quaternion) = -Makie.quaternion_to_2d_angle(quat)
 
