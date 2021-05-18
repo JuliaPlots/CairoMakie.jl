@@ -13,7 +13,7 @@ using CairoMakie
     end
 end
 
-path = normpath(joinpath(dirname(pathof(AbstractPlotting)), "..", "test", "ReferenceTests"))
+path = normpath(joinpath(dirname(pathof(Makie)), "..", "test", "ReferenceTests"))
 Pkg.develop(PackageSpec(path=path))
 using ReferenceTests
 using ReferenceTests: nice_title

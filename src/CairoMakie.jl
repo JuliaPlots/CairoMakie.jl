@@ -1,13 +1,13 @@
 module CairoMakie
 
-using AbstractPlotting, LinearAlgebra
+using Makie, LinearAlgebra
 using Colors, GeometryBasics, FileIO, StaticArrays
 import Cairo
 
-using AbstractPlotting: Scene, Lines, Text, Image, Heatmap, Scatter, @key_str, broadcast_foreach
-using AbstractPlotting: convert_attribute, @extractvalue, LineSegments, to_ndim, NativeFont
-using AbstractPlotting: @info, @get_attribute, Combined
-using AbstractPlotting: to_value, to_colormap, extrema_nan
+using Makie: Scene, Lines, Text, Image, Heatmap, Scatter, @key_str, broadcast_foreach
+using Makie: convert_attribute, @extractvalue, LineSegments, to_ndim, NativeFont
+using Makie: @info, @get_attribute, Combined
+using Makie: to_value, to_colormap, extrema_nan
 
 const LIB_CAIRO = if isdefined(Cairo, :libcairo)
     Cairo.libcairo
@@ -21,9 +21,9 @@ const OneOrVec{T} = Union{
     NTuple{N2, T} where N2,
 }
 
-# re-export AbstractPlotting
-for name in names(AbstractPlotting)
-    @eval using AbstractPlotting: $(name)
+# re-export Makie
+for name in names(Makie)
+    @eval using Makie: $(name)
     @eval export $(name)
 end
 
@@ -35,7 +35,7 @@ include("overrides.jl")
 
 function __init__()
     activate!()
-    AbstractPlotting.register_backend!(AbstractPlotting.current_backend[])
+    Makie.register_backend!(Makie.current_backend[])
 end
 
 function display_path(type::String)
@@ -47,8 +47,8 @@ end
 
 function activate!(; inline = true, type = "png", px_per_unit=1, pt_per_unit=1)
     backend = CairoBackend(display_path(type); px_per_unit=px_per_unit, pt_per_unit=pt_per_unit)
-    AbstractPlotting.current_backend[] = backend
-    AbstractPlotting.use_display[] = !inline
+    Makie.current_backend[] = backend
+    Makie.use_display[] = !inline
     return
 end
 

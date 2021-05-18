@@ -4,7 +4,7 @@
 
 function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Union{Lines, LineSegments})
     fields = @get_attribute(primitive, (color, linewidth, linestyle))
-    linestyle = AbstractPlotting.convert_attribute(linestyle, AbstractPlotting.key"linestyle"())
+    linestyle = Makie.convert_attribute(linestyle, Makie.key"linestyle"())
     ctx = screen.context
     model = primitive[:model][]
     positions = primitive[1][]
@@ -37,9 +37,9 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Union{Lines, 
     # if it's an array of colors, each segment must be stroked separately
 
     # The linestyle can be set globally, as we do here.
-    # However, there is a discrepancy between AbstractPlotting
+    # However, there is a discrepancy between Makie
     # and Cairo when it comes to linestyles.
-    # For AbstractPlotting, the linestyle array is cumulative,
+    # For Makie, the linestyle array is cumulative,
     # and defines the "absolute" endpoints of segments.
     # However, for Cairo, each value provides the length of
     # alternate "on" and "off" portions of the stroke.
@@ -170,7 +170,7 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Scatter)
     isempty(positions) && return
     size_model = transform_marker ? model : Mat4f0(I)
 
-    font = to_font(to_value(get(primitive, :font, AbstractPlotting.defaultfont())))
+    font = to_font(to_value(get(primitive, :font, Makie.defaultfont())))
 
     colors = if color isa AbstractArray{<: Number}
         numbers_to_colors(color, primitive)
@@ -183,15 +183,15 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Scatter)
                           markersize, strokecolor, strokewidth, marker, mo, rotation
 
         # if we give size in pixels, the size is always equal to that value
-        is_pixelspace = haskey(primitive, :markerspace) && primitive.markerspace[] == AbstractPlotting.Pixel
+        is_pixelspace = haskey(primitive, :markerspace) && primitive.markerspace[] == Makie.Pixel
         scale = if is_pixelspace
-            AbstractPlotting.to_2d_scale(markersize)
+            Makie.to_2d_scale(markersize)
         else
             # otherwise calculate a scaled size
             project_scale(scene, markersize, size_model)
         end
         offset = if is_pixelspace
-            AbstractPlotting.to_2d_scale(mo)
+            Makie.to_2d_scale(mo)
         else
             project_scale(scene, mo, size_model)
         end
@@ -245,8 +245,8 @@ function draw_marker(ctx, marker::Char, font, pos, scale, strokecolor, strokewid
 
     cairoface = set_ft_font(ctx, font)
 
-    charextent = AbstractPlotting.FreeTypeAbstraction.internal_get_extent(font, marker)
-    inkbb = AbstractPlotting.FreeTypeAbstraction.inkboundingbox(charextent)
+    charextent = Makie.FreeTypeAbstraction.internal_get_extent(font, marker)
+    inkbb = Makie.FreeTypeAbstraction.inkboundingbox(charextent)
 
     # scale normalized bbox by font size
     inkbb_scaled = FRect2D(origin(inkbb) .* scale, widths(inkbb) .* scale)
@@ -493,11 +493,14 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Union{Heatmap
 
         # Note: xs and ys should have size ni+1, nj+1
         ni, nj = size(image)
+        if ni + 1 != length(xs) || nj + 1 != length(ys)
+            error("Error in conversion pipeline. xs and ys should have size ni+1, nj+1. Found: xs: $(length(xs)), ys: $(length(ys)), ni: $(ni), nj: $(nj)")
+        end
         @inbounds for i in 1:ni, j in 1:nj
             x0, y0 = xys[i, j]
             x1, y1 = xys[i+1, j+1]
             w = x1 - x0; h = y1 - y0
-            
+
             # there are usually white lines between directly adjacent rectangles
             # in vector graphics because of anti-aliasing
 
@@ -534,8 +537,8 @@ end
 ################################################################################
 
 
-function draw_atomic(scene::Scene, screen::CairoScreen, primitive::AbstractPlotting.Mesh)
-    if scene.camera_controls[] isa Union{Camera2D, AbstractPlotting.PixelCamera}
+function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Makie.Mesh)
+    if scene.camera_controls[] isa Union{Camera2D, Makie.PixelCamera}
         draw_mesh2D(scene, screen, primitive)
     else
         if !haskey(primitive, :faceculling)
@@ -697,7 +700,7 @@ end
 ################################################################################
 
 
-function draw_atomic(scene::Scene, screen::CairoScreen, primitive::AbstractPlotting.Surface)
+function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Makie.Surface)
     # Pretend the surface plot is a mesh plot and plot that instead
     mesh = surface2mesh(primitive[1][], primitive[2][], primitive[3][])
     primitive[:color][] = primitive[3][][:]
@@ -733,7 +736,7 @@ end
 ################################################################################
 
 
-function draw_atomic(scene::Scene, screen::CairoScreen, primitive::AbstractPlotting.MeshScatter)
+function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Makie.MeshScatter)
     @get_attribute(primitive, (color, model, marker, markersize, rotations))
 
     if color isa AbstractArray{<: Number}
@@ -762,7 +765,7 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::AbstractPlott
     )
 
     if !(rotations isa Vector)
-        R = AbstractPlotting.rotationmatrix4(to_rotation(rotations))
+        R = Makie.rotationmatrix4(to_rotation(rotations))
         submesh[:model] = model * R
     end
     scales = primitive[:markersize][]
@@ -773,7 +776,7 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::AbstractPlott
             submesh[:color] = color[i]
         end
         if rotations isa Vector
-            R = AbstractPlotting.rotationmatrix4(to_rotation(rotations[i]))
+            R = Makie.rotationmatrix4(to_rotation(rotations[i]))
             submesh[:model] = model * R
         end
         scale = markersize isa Vector ? markersize[i] : markersize
