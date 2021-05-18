@@ -8,7 +8,7 @@ using Makie: Scene, Lines, Text, Image, Heatmap, Scatter, @key_str, broadcast_fo
 using Makie: convert_attribute, @extractvalue, LineSegments, to_ndim, NativeFont
 using Makie: @info, @get_attribute, Combined
 using Makie: to_value, to_colormap, extrema_nan
-
+using Makie: inline!
 const LIB_CAIRO = if isdefined(Cairo, :libcairo)
     Cairo.libcairo
 else
@@ -26,6 +26,7 @@ for name in names(Makie)
     @eval using Makie: $(name)
     @eval export $(name)
 end
+export inline!
 
 include("infrastructure.jl")
 include("utils.jl")
