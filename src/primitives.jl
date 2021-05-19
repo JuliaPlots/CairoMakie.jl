@@ -717,6 +717,21 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Makie.Surface
     return nothing
 end
 
+function surface2mesh(xs::Makie.ClosedInterval, ys, zs::AbstractMatrix)
+    surface2mesh(range(xs.left, xs.right, length = size(zs, 1)), ys, zs)
+end
+
+function surface2mesh(xs, ys::Makie.ClosedInterval, zs::AbstractMatrix)
+    surface2mesh(xs, range(ys.left, ys.right, length = size(zs, 2)), zs)
+end
+
+function surface2mesh(xs::Makie.ClosedInterval, ys::Makie.ClosedInterval, zs::AbstractMatrix)
+    surface2mesh(
+        range(xs.left, xs.right, length = size(zs, 1)),
+        range(ys.left, ys.right, length = size(zs, 2)),
+        zs)
+end
+
 function surface2mesh(xs::AbstractVector, ys::AbstractVector, zs::AbstractMatrix)
     ps = [Point3f0(xs[i], ys[j], zs[i, j]) for j in eachindex(ys) for i in eachindex(xs)]
     idxs = LinearIndices(size(zs))
