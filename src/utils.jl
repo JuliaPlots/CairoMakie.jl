@@ -189,7 +189,12 @@ Base.getindex(fi::FaceIterator{:PerFace}, i::Integer) = fi.data[i]
 Base.getindex(fi::FaceIterator{:PerVert}, i::Integer) = fi.data[fi.faces[i]]
 Base.getindex(fi::FaceIterator{:Const}, i::Integer) = ntuple(i-> fi.data, 3)
 
-function per_face_colors(color, colormap, colorrange, matcap, vertices, faces, normals, uv)
+color_or_nothing(c) = c === nothing ? nothing : to_color(c)
+
+function per_face_colors(
+        color, colormap, colorrange, matcap, vertices, faces, normals, uv,
+        lowclip=nothing, highclip=nothing, nan_color=nothing
+    )
     if matcap !== nothing
         wsize = reverse(size(matcap))
         wh = wsize .- 1
@@ -204,8 +209,19 @@ function per_face_colors(color, colormap, colorrange, matcap, vertices, faces, n
     elseif color isa AbstractArray
         if color isa AbstractVector{<: Colorant}
             return FaceIterator(color, faces)
-        elseif color isa AbstractVector{<: Number}
-            cvec = Makie.interpolated_getindex.((colormap,), color, (colorrange,))
+        elseif color isa AbstractArray{<: Number}
+            low, high = extrema(colorrange)
+            cvec = map(color[:]) do c
+                if isnan(c) && nan_color !== nothing
+                    return nan_color
+                elseif c < low && lowclip !== nothing
+                    return lowclip
+                elseif c > high && highclip !== nothing
+                    return highclip
+                else
+                    Makie.interpolated_getindex(colormap, c, colorrange)
+                end
+            end
             return FaceIterator(cvec, faces)
         elseif color isa AbstractMatrix{<: Colorant} && uv !== nothing
             wsize = reverse(size(color))

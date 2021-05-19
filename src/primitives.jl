@@ -596,6 +596,8 @@ function average_z(positions, face)
     sum(v -> v[3], vs) / length(vs)
 end
 
+nan2zero(x) = !isnan(x) * x
+
 function draw_mesh3D(
         scene, screen, primitive;
         mesh = primitive[1][], pos = Vec4f0(0), scale = 1f0
@@ -624,13 +626,19 @@ function draw_mesh3D(
     # Mesh data
     # transform to view/camera space
     vs = map(coordinates(mesh)) do v
+        # Should v get a nan2zero?
         p4d = to_ndim(Vec4f0, scale .* to_ndim(Vec3f0, v, 0f0), 1f0)
         view * (model * p4d .+ to_ndim(Vec4f0, pos, 0f0))
     end
     fs = faces(mesh)
     uv = hasproperty(mesh, :uv) ? mesh.uv : nothing
     ns = map(n -> normalmatrix * n, normals(mesh))
-    cols = per_face_colors(color, colormap, colorrange, matcap, vs, fs, ns, uv)
+    cols = per_face_colors(
+        color, colormap, colorrange, matcap, vs, fs, ns, uv,
+        get(primitive, :lowclip, nothing) |> to_value |> color_or_nothing,
+        get(primitive, :highclip, nothing) |> to_value |> color_or_nothing,
+        get(primitive, :nan_color, nothing) |> to_value |> color_or_nothing
+    )
 
     # Liight math happens in view/camera space
     if lightposition == :eyeposition
@@ -709,11 +717,15 @@ end
 function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Makie.Surface)
     # Pretend the surface plot is a mesh plot and plot that instead
     mesh = surface2mesh(primitive[1][], primitive[2][], primitive[3][])
-    primitive[:color][] = primitive[3][][:]
+    old = primitive[:color]
+    if old[] === nothing
+        primitive[:color] = primitive[3]
+    end
     if !haskey(primitive, :faceculling)
         primitive[:faceculling] = Node(-0.1)
     end
     draw_mesh3D(scene, screen, primitive, mesh=mesh)
+    primitive[:color] = old
     return nothing
 end
 
@@ -733,7 +745,7 @@ function surface2mesh(xs::Makie.ClosedInterval, ys::Makie.ClosedInterval, zs::Ab
 end
 
 function surface2mesh(xs::AbstractVector, ys::AbstractVector, zs::AbstractMatrix)
-    ps = [Point3f0(xs[i], ys[j], zs[i, j]) for j in eachindex(ys) for i in eachindex(xs)]
+    ps = [nan2zero.(Point3f0(xs[i], ys[j], zs[i, j])) for j in eachindex(ys) for i in eachindex(xs)]
     idxs = LinearIndices(size(zs))
     faces = [
         QuadFace(idxs[i, j], idxs[i+1, j], idxs[i+1, j+1], idxs[i, j+1])
@@ -743,7 +755,7 @@ function surface2mesh(xs::AbstractVector, ys::AbstractVector, zs::AbstractMatrix
 end
 
 function surface2mesh(xs::AbstractMatrix, ys::AbstractMatrix, zs::AbstractMatrix)
-    ps = [Point3f0(xs[i, j], ys[i, j], zs[i, j]) for j in 1:size(zs, 2) for i in 1:size(zs, 1)]
+    ps = [nan2zero.(Point3f0(xs[i, j], ys[i, j], zs[i, j])) for j in 1:size(zs, 2) for i in 1:size(zs, 1)]
     idxs = LinearIndices(size(zs))
     faces = [
         QuadFace(idxs[i, j], idxs[i+1, j], idxs[i+1, j+1], idxs[i, j+1])
