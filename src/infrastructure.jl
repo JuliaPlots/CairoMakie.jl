@@ -268,12 +268,22 @@ Makie.backend_showable(x::CairoBackend, ::MIME"image/png", scene::Scene) = x.typ
 
 
 function Makie.backend_show(x::CairoBackend, io::IO, ::MIME"image/svg+xml", scene::Scene)
-
+    proxy_io = IOBuffer()
     pt_per_unit = get(io, :pt_per_unit, x.pt_per_unit)
 
-    screen = CairoScreen(scene, io, :svg; device_scaling_factor = pt_per_unit)
+    screen = CairoScreen(scene, proxy_io, :svg; device_scaling_factor = pt_per_unit)
     cairo_draw(screen, scene)
+    Cairo.flush(screen.surface)
     Cairo.finish(screen.surface)
+    svg = String(take!(proxy_io))
+    @show svg
+    # salt svg glyphs with the first 8 characters of the base64 encoded
+    # sha512 hash to avoid collisions across svgs when embedding them on
+    # websites. the hash and therefore the salt will always be the same for the same file
+    # so the output is deterministic
+    salt = String(Base64.base64encode(SHA.sha512(svg)))[1:8]
+    svg_salted = replace(svg, r"glyph(?=\d+-\d+)" => salt)
+    print(io, svg_salted)
     return screen
 end
 
