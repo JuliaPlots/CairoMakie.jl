@@ -208,7 +208,7 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Scatter)
 
         Cairo.set_source_rgba(ctx, rgbatuple(col)...)
 
-        if marker isa AbstractPlotting.BezierPath
+        if marker isa BezierPath
             draw_marker(ctx, marker, pos, scale, strokecolor, strokewidth, offset, rotation)
         else
             m = convert_attribute(marker, key"marker"(), key"scatter"())
@@ -222,12 +222,11 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Scatter)
     nothing
 end
 
-function draw_marker(ctx, beziermarker::AbstractPlotting.BezierPath, pos, scale, strokecolor, strokewidth, marker_offset, rotation)
+function draw_marker(ctx, beziermarker::BezierPath, pos, scale, strokecolor, strokewidth, marker_offset, rotation)
+
     Cairo.save(ctx)
 
     Cairo.translate(ctx, pos[1], pos[2])
-
-    # Cairo.rotate(ctx, to_2d_rotation(rotation))
 
     Cairo.rotate(ctx, to_2d_rotation(rotation))
     Cairo.scale(ctx, scale[1], -scale[2]) # flip y for cairo
@@ -245,16 +244,20 @@ function draw_marker(ctx, beziermarker::AbstractPlotting.BezierPath, pos, scale,
     Cairo.restore(ctx)
 end
 
-draw_path(ctx, bp::AbstractPlotting.BezierPath) = foreach(x -> path_command(ctx, x), bp.commands)
-path_command(ctx, c::AbstractPlotting.MoveTo) = Cairo.move_to(ctx, c.p...)
-path_command(ctx, c::AbstractPlotting.LineTo) = Cairo.line_to(ctx, c.p...)
-path_command(ctx, c::AbstractPlotting.CurveTo) = Cairo.curve_to(ctx, c.c1..., c.c2..., c.p...)
-path_command(ctx, ::AbstractPlotting.ClosePath) = Cairo.close_path(ctx)
-function path_command(ctx, c::AbstractPlotting.EllipticalArc)
+draw_path(ctx, bp::BezierPath) = foreach(x -> path_command(ctx, x), bp.commands)
+path_command(ctx, c::MoveTo) = Cairo.move_to(ctx, c.p...)
+path_command(ctx, c::LineTo) = Cairo.line_to(ctx, c.p...)
+path_command(ctx, c::CurveTo) = Cairo.curve_to(ctx, c.c1..., c.c2..., c.p...)
+path_command(ctx, ::ClosePath) = Cairo.close_path(ctx)
+function path_command(ctx, c::EllipticalArc)
     Cairo.save(ctx)
     Cairo.rotate(ctx, c.angle)
     Cairo.scale(ctx, 1, c.r2 / c.r1)
-    Cairo.arc(ctx, c.c..., c.r1, c.a1, c.a2)
+    if c.a2 > c.a1
+        Cairo.arc(ctx, c.c..., c.r1, c.a1, c.a2)
+    else
+        Cairo.arc_negative(ctx, c.c..., c.r1, c.a1, c.a2)
+    end
     Cairo.restore(ctx)
 end
 
