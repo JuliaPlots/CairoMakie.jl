@@ -328,31 +328,31 @@ function p3_to_p2(p::Point3{T}) where T
     end
 end
 
-function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Text)
+function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Text{<:Tuple{<:G}}) where G <: Union{AbstractArray{<:Makie.GlyphLayout3}, Makie.GlyphLayout3}
     ctx = screen.context
     @get_attribute(primitive, (textsize, color, font, rotation, model, space, offset))
-    txt = to_value(primitive[1])
     position = primitive.attributes[:position][]
     # use cached glyph info
-    glyphlayouts = primitive._glyphlayout[]
+    glyphlayout = to_value(primitive[1])
 
-    draw_string(scene, ctx, position, glyphlayouts, textsize, color, font,
+    draw_glyphlayout(scene, ctx, position, glyphlayout, textsize, color, font,
         remove_billboard(rotation), model, space, offset)
 
     nothing
 end
 
-function draw_string(scene, ctx, positions, glyphlayouts::AbstractArray, textsize, color, font, rotation, model::SMatrix, space, offset)
+
+function draw_glyphlayout(scene, ctx, positions, glyphlayouts::AbstractArray, textsize, color, font, rotation, model::SMatrix, space, offset)
 
     # TODO: why is the Ref around model necessary? doesn't broadcast_foreach handle staticarrays matrices?
     broadcast_foreach(positions, glyphlayouts, textsize, color, font, rotation,
         Ref(model), space, offset) do pos, glayout, ts, c, f, ro, mo, sp, off
 
-        draw_string(scene, ctx, pos, glayout, ts, c, f, ro, mo, sp, off)
+        draw_glyphlayout(scene, ctx, pos, glayout, ts, c, f, ro, mo, sp, off)
     end
 end
 
-function draw_string(scene, ctx, position, glyphlayout, textsize, color, font, rotation, model, space, offset)
+function draw_glyphlayout(scene, ctx, position, glyphlayout, textsize, color, font, rotation, model, space, offset)
 
     glyphoffsets = glyphlayout.origins
     fonts = [Makie.convert_attribute(f, key"font"()) for f in glyphlayout.fonts]
