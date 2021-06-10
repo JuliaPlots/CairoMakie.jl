@@ -473,6 +473,35 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Union{Heatmap
     ctx = screen.context
     image = primitive[3][]
     xs, ys = primitive[1][], primitive[2][]
+    model = primitive[:model][]
+    interp = to_value(get(primitive, :interpolate, true))
+    weird_cairo_limit = (2^15) - 23
+
+    if xs isa AbstractMatrix && ys isa AbstractMatrix && !interp
+        ni, nj = size(image)
+
+        if (ni+1,nj+1) != size(xs) || (ni+1,nj+1) != size(ys)
+            error("Error in conversion pipeline. xs and ys should have size ni+1, nj+1. Found: xs: $(size(xs)), ys: $(size(ys)), ni: $(ni), nj: $(nj)")
+        end
+
+        colors = to_rgba_image(image, primitive)
+        xys = [project_position(scene, Point2f0(xy), model) for xy in zip(xs,ys)]
+
+        @inbounds for i in 1:ni, j in 1:nj
+            # prevent white lines between directly adjacent quadrilaterals
+            Cairo.set_antialias(ctx,Cairo.ANTIALIAS_NONE)
+            Cairo.line_to(ctx, xys[i,j+1]...);
+            Cairo.line_to(ctx, xys[i+1,j+1]...);
+            Cairo.line_to(ctx, xys[i+1,j]...);
+            Cairo.line_to(ctx, xys[i,j]...);
+            Cairo.close_path(ctx);
+
+            Cairo.set_source_rgba(ctx, rgbatuple(colors[i, j])...)
+            Cairo.fill(ctx);
+        end
+
+        return nothing
+    end
 
     if !(xs isa Vector)
         l, r = extrema(xs)
@@ -488,12 +517,9 @@ function draw_atomic(scene::Scene, screen::CairoScreen, primitive::Union{Heatmap
     else
         ys = regularly_spaced_array_to_range(ys)
     end
-    model = primitive[:model][]
+
     imsize = (extrema_nan(xs), extrema_nan(ys))
 
-    interp = to_value(get(primitive, :interpolate, true))
-
-    weird_cairo_limit = (2^15) - 23
     # Vector backends don't support FILTER_NEAREST for interp == false, so in that case we also need to draw rects
     if xs isa AbstractRange && ys isa AbstractRange && !(is_vector_backend(ctx) && !interp)
         # find projected image corners
