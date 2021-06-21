@@ -1,3 +1,9 @@
+> ⚠️ **INFO: This repository is deprecated**
+> 
+> CairoMakie has been moved into the monorepo at [Makie.jl](https://github.com/JuliaPlots/Makie.jl).
+> The latest version can be determined by checking the Project.toml in the CairoMakie subdirectory.
+
+
 # CairoMakie
 
 The Cairo Backend for Makie
